@@ -12,15 +12,13 @@ from spacy.lang.en import English
 
 class word_match(object):
 
-    def __init__(self,
-                 df,
-                 model = 'en_core_web_sm',
-                 match_method = 'spacy'):
+    def __init__(self, model = 'en_core_web_sm'):
 
-        self.df = df
         self.model = model
-        self.match_method = match_method
         self.topic_freq = []
+
+        self.init_model()
+        self.setup_match_rules()
 
 
     def init_model(self):
@@ -83,7 +81,7 @@ class word_match(object):
                                                 {"TEXT": {"REGEX": "^[Mm](ission)$"}}, #'mission'],
                                                 ],
                   'No answer/Nothing':          [],
-                  'Location to home':           [{"TEXT": {"REGEX": "^[Cc](om.?ute)$"}}, #'commute',
+                  'Commmute':                   [{"TEXT": {"REGEX": "^[Cc](om.?ute)$"}}, #'commute',
                                                 {"TEXT": {"REGEX": "^[Dd](riving)$"}}, #'driving',
                                                 {"TEXT": {"REGEX": "^[Ll](ocation)$"}} # location'
                                                 ],
@@ -118,35 +116,16 @@ class word_match(object):
                       }
 
 
-    def match_seeds(self):
-        # apply spacy matcher
-        if self.match_method == 'spacy':
-            # setup spacy matcher
+    def match_topics(self, doc):
+
+        # setup spacy matcher
+        self.match_dict = dict((e, []) for e in self.topics)
+        for topic,rules in self.topics.items():
             matcher = Matcher(self.nlp.vocab)
+            matcher.add(rules)
+            matches = matcher(doc)
+            self.match_dict[topic] = matches
 
-            for topic,seeds in self.topics.items():
-                for seed in seeds:
-                    matcher.add(seed)
-
-
-            for d, doc in self.df['doc']:
-                matches = matcher(self.doc)
-                for match in re.finditer(expression, doc.text):
-                    start, end = match.span()
-                    span = doc.char_span(start, end)
-                    # This is a Span object or None if match doesn't map to valid token sequence
-                    if span is not None:
-                        print("Found match:", span.text)
-
-        # ... or do simple text matching
-        elif self.match_method == 'plaintext':
-            self.match_dict = dict((e, []) for e in self.seeds)
-            for key, val in self.seeds.items():
-                matches = []
-                for v in val:
-                    word_idx = self.find_words(v)
-                    matches.append(word_idx)
-                self.match_dict[key] = matches
 
     def plot_match_stats(self):
         total_count = 0
