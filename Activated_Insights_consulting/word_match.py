@@ -12,7 +12,7 @@ from spacy.lang.en import English
 
 class word_match(object):
 
-    def __init__(self, model = 'en_core_web_sm', context_win=10):
+    def __init__(self, model = 'en_core_web_sm', context_win=3):
 
         self.model = model
         self.topic_freq = []
@@ -31,18 +31,18 @@ class word_match(object):
 
     def setup_match_rules(self):
 
-        self.topics = {'Co-workers/teamwork':   [{"REGEX": "[Cc](ol.?.?.?g.?e.?)"}, #colleague
-                                                {"REGEX": "[Cc](o.?w.?.?k.?er.?)"}, #coworker
-                                                {"REGEX": "[Aa](s.?o.?.?.?te.?)"}, #associate
-                                                {"REGEX": "[Tt](eam.?.?.?te.?)"}, #teammate
-                                                {"REGEX": "[Tt](eam.?\work)"}, #teamwork
-                                                {"REGEX": "[Ss](taf.?.?)"}, #staff
-                                                {"REGEX": "[Ff](amily)"}, #family
-                                                {"REGEX": "[Cc](ommunity)"} #community,
+        self.topics = {'Co-workers/teamwork':   [{"colleague": "[Cc](ol.?.?.?g.?e.?)"}, #colleague
+                                                {"coworker": "[Cc](o.?w.?.?k.?er.?)"}, #coworker
+                                                {"associate": "[Aa](s.?o.?.?.?te.?)"}, #associate
+                                                {"teammate": "[Tt](eam.?.?.?te.?)"}, #teammate
+                                                {"teamwork": "[Tt](eam.?\work)"}, #teamwork
+                                                {"staff": "[Ss](taf.?.?)"}, #staff
+                                                {"family": "[Ff](amily)"}, #family
+                                                {"community": "[Cc](ommunity)"} #community,
                                                 ],
-                  'Schedule':                   [{"REGEX": "[Ss](.?.?.?dule.?)"}, #schedule,
-                                                {"REGEX": "[Bb](usy)"}, #busy',
-                                                {"REGEX": "[Cc](al.?nd.?r.?)"}  #calendar
+                  'Schedule':                   [{"schedule": "[Ss](.?.?.?dule.?)"}, #schedule,
+                                                {"busy": "[Bb](usy)"}, #busy',
+                                                {"calendar": "[Cc](al.?nd.?r.?)"}  #calendar
                                                 ],
                   'Management':                 [{"supervisor": "[Ss](upervis.?.?.?)"}, #'supervisor',
                                                 {"boss": "[Bb](oss.?.?)"}, #'boss',
@@ -118,8 +118,8 @@ class word_match(object):
                       }
 
 
-    def match_topics(self, doc):
-
+    def match_topics(self, idx, doc):
+        out_df = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'comment_text'])
         # setup spacy matcher
         matcher = Matcher(self.nlp.vocab)
         self.match_dict = dict((e, []) for e in self.topics)
@@ -133,23 +133,31 @@ class word_match(object):
                             match = span.text
                             matcher.add(match, None, [{"TEXT": match}])
                             matches = matcher(doc)
-                            for match_id, tok_start, tok_end in matches:
-                                start = tok_start
-                                end = tok_end
-                                print(doc.text)
-                                print(match)
-                                print('token indices = ' + str(start), end)
-                            if (start-self.context_win) < 0:
-                                context_start = 0
+                            if matches:
+                                for match_id, tok_start, tok_end in matches:
+                                    start = tok_start
+                                    end = tok_end
+                                if start-self.context_win < 0:
+                                    context_start = 0
+                                else:
+                                    context_start = start-self.context_win
+                                if end + self.context_win >= len(doc):
+                                    context_end = len(doc.text)-1
+                                else:
+                                    context_end = end+self.context_win
+                                context_span = doc[context_start:context_end].text
+                                if context_span is None:
+                                    print('ERROR CONTEXT SPAN IS NONE')
                             else:
-                                context_start = start-self.context_win
-                            if (end + self.context_win) > len(doc):
-                                context_end = len(doc.text)
-                            else:
-                                context_end = end+self.context_win
-                            context_span = doc.char_span(context_start, context_end)
-                            print(match, context_span.text)
-                            return topic, key, match, context_span
+                                #print('ERROR WITH SPACY TOKEN MATCHING!  ' + str(span.text))
+                                context_span = match
+                            out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'context_span': context_span, 'comment_text':doc.text}
+                        else:
+                            out_dict = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'comment_text'])
+                        # for eatch match append the results, unless there was an error else append ''
+                        #print(out_dict)
+                        out_df = out_df.append(out_dict, ignore_index=True)
+        return out_df
 
 
     def plot_match_stats(self):
