@@ -12,10 +12,11 @@ from spacy.lang.en import English
 
 class word_match(object):
 
-    def __init__(self, model = 'en_core_web_sm'):
+    def __init__(self, model = 'en_core_web_sm', context_win=10):
 
         self.model = model
         self.topic_freq = []
+        self.context_win = context_win
 
         self.init_model()
         self.setup_match_rules()
@@ -30,88 +31,89 @@ class word_match(object):
 
     def setup_match_rules(self):
 
-        self.topics = {'Co-workers/teamwork':   [{"TEXT": {"REGEX": "^[Cc](ol.?.?.?g.?e.?)$"}}, #colleague
-                                                {"TEXT": {"REGEX": "^[Cc](o.?w.?.?k.?er.?)$"}}, #coworker
-                                                {"TEXT": {"REGEX": "^[Aa](s.?o.?.?.?te.?)$"}}, #associate
-                                                {"TEXT": {"REGEX": "^[Tt](eam.?.?.?te.?)$"}}, #teammate
-                                                {"TEXT": {"REGEX": "^[Tt](eam.?\work)$"}}, #teamwork
-                                                {"TEXT": {"REGEX": "^[Ss](taf.?.?)$"}}, #staff
-                                                {"TEXT": {"REGEX": "^[Ff](amily)$"}}, #family
-                                                {"TEXT": {"REGEX": "^[Cc](ommunity)$"}} #community,
+        self.topics = {'Co-workers/teamwork':   [{"REGEX": "[Cc](ol.?.?.?g.?e.?)"}, #colleague
+                                                {"REGEX": "[Cc](o.?w.?.?k.?er.?)"}, #coworker
+                                                {"REGEX": "[Aa](s.?o.?.?.?te.?)"}, #associate
+                                                {"REGEX": "[Tt](eam.?.?.?te.?)"}, #teammate
+                                                {"REGEX": "[Tt](eam.?\work)"}, #teamwork
+                                                {"REGEX": "[Ss](taf.?.?)"}, #staff
+                                                {"REGEX": "[Ff](amily)"}, #family
+                                                {"REGEX": "[Cc](ommunity)"} #community,
                                                 ],
-                  'Schedule':                   [{"TEXT": {"REGEX": "^[Ss](.?.?.?dule.?)$"}}, #schedule,
-                                                {"TEXT": {"REGEX": "^[Bb](usy)$"}}, #busy',
-                                                {"TEXT": {"REGEX": "^[Cc](al.?nd.?r.?)$"}}  #calendar
+                  'Schedule':                   [{"REGEX": "[Ss](.?.?.?dule.?)"}, #schedule,
+                                                {"REGEX": "[Bb](usy)"}, #busy',
+                                                {"REGEX": "[Cc](al.?nd.?r.?)"}  #calendar
                                                 ],
-                  'Management':                 [{"TEXT": {"REGEX": "^[Ss](upervis.?.?.?)$"}}, #'supervisor',
-                                                {"TEXT": {"REGEX": "^[Bb](oss.?.?)$"}}, #'boss',
-                                                {"TEXT": {"REGEX": "^[Rr](ule.?)$"}}, #'rule',
-                                                {"TEXT": {"REGEX": "^[Mm](an.?g.?ment)$"}}, #'management',
-                                                {"TEXT": {"REGEX": "^[Aa](dmin.?.?.?.?.?.?.?.?.?.?)$"}} #'administration'
+                  'Management':                 [{"supervisor": "[Ss](upervis.?.?.?)"}, #'supervisor',
+                                                {"boss": "[Bb](oss.?.?)"}, #'boss',
+                                                {"rule": "[Rr](ule.?)"}, #'rule',
+                                                {"management": "[Mm](an.?g.?ment)"}, #'management',
+                                                {"administration": "[Aa](dmin.?.?.?.?.?.?.?.?.?.?)"} #'administration'
                                                 ],
-                  'Benefits and leave':         [{"TEXT": {"REGEX": "^[Bb](enefit.?)$"}}, #'benefits',
-                                                {"TEXT": {"REGEX": "^[Vv](ac.?.?.?on.?)$"}}, #'vacation',
-                                                {"TEXT": {"REGEX": "^[Tt](ime.?.?off.?)$"}}, #'time off',
-                                                {"TEXT": {"REGEX": "^[Pp](erson.?.?.?time)$"}}, #'personal time',
-                                                {"TEXT": {"REGEX": "^[Ss](ick.?day.?)$"}} #sick days
+                  'Benefits and leave':         [{"benefits": "[Bb](enefit.?)"}, #'benefits',
+                                                {"vacation": "[Vv](ac.?.?.?on.?)"}, #'vacation',
+                                                {"time off": "[Tt](ime.?.?off.?)"}, #'time off',
+                                                {"personal time": "[Pp](erson.?.?.?time)"}, #'personal time',
+                                                {"sick day": "[Ss](ick.?day.?)"},
+                                                {"maternity": "[Mm](aternity)"},
+                                                {"paternity": "[Pp](aternity)"}#
                                                 ],
-                  'Support and resources':      [{"TEXT": {"REGEX": "^[Ss](upport)$"}}, #'support',
-                                                {"TEXT": {"REGEX": "^[Rr](eso.?rc.?.?.?)$"}} #resources, resourcing
+                  'Support and resources':      [{"support": "[Ss](upport)"}, #'support',
+                                                {"resource": "[Rr](eso.?rc.?.?.?)"} #resources, resourcing
                                                 ],
-                  'Customers':                  [{"TEXT": {"REGEX": "^[Rr](es.?d.?nt.?)$"}}, # resident,
-                                                {"TEXT": {"REGEX": "^[Pp](at.?.?nt.?)$"}}, # patient
-                                                {"TEXT": {"REGEX": "^[Ss](enior.?)$"}} # senior
+                  'Customers':                  [{"resident": "[Rr](es.?d.?nt.?)"}, # resident,
+                                                {"patient": "[Pp](at.?.?nt.?)"}, # patient
+                                                {"senior": "[Ss](enior.?)"} # senior
                                                 ],
-                  'Pay':                        [{"TEXT": {"REGEX": "^[Mm](oney)$"}}, #'money',
-                                                {"TEXT": {"REGEX": "^[Pp](ay.?.?.?.?.?)$"}}, #'pay', paycheck, payment
-                                                {"TEXT": {"REGEX": "^[Rr](es.?d.?nt.?)$"}}, #'end of the month',
-                                                {"TEXT": {"REGEX": "^[Dd](ebt)$"}}, #'debt',
-                                                {"TEXT": {"REGEX": "^[Ll](oan.?)$"}} # loan
+                  'Pay':                        [{"money": "[Mm](oney)"}, #'money',
+                                                {"pay": "[Pp](ay.?.?.?.?.?)"}, #'pay', paycheck, payment
+                                                {"debt": "[Dd](ebt)"}, #'debt',
+                                                {"loan": "[Ll](oan.?)"} # loan
                                                 ],
-                  'Recognition':                [{"TEXT": {"REGEX": "^[Rr](ecognition.?)$"}}, #'recognition',
-                                                {"TEXT": {"REGEX": "^[Aa](p.?rec.?.?.?tion)$"}} #'appreciation'],
+                  'Recognition':                [{"recognition": "[Rr](ecognition.?)"}, #'recognition',
+                                                {"appreciation": "[Aa](p.?rec.?.?t.?.?.?)"} #'appreciation'],
                                                 ],
-                  'Learning & Development':     [{"TEXT": {"REGEX": "^[Ss](taf.?.?[Dd]evel.?.?ment)$"}}, #'Staff development',
-                                                {"TEXT": {"REGEX": "^[Tt](each.?.?.?.?)$"}}, #'teach', teaching, teacher
-                                                {"TEXT": {"REGEX": "^[Gg](rowth)$"}}, #'growth',
-                                                {"TEXT": {"REGEX": "^[Tt](ra.?.?ing)$"}} #training
+                  'Learning & Development':     [{"staff development": "[Ss](taf.?.?[Dd]evel.?.?ment)"}, #'Staff development',
+                                                {"teach": "[Tt](each.?.?.?.?)"}, #'teach', teaching, teacher
+                                                {"growth": "[Gg](rowth)"}, #'growth',
+                                                {"training": "[Tt](ra.?.?ing)"} #training
                                                 ],
-                  'Purpose':                    [{"TEXT": {"REGEX": "^[Pp](ur.?p.?.?se)$"}}, #'purpose',
-                                                {"TEXT": {"REGEX": "^[Mm](eaning)$"}}, #'meaning',
-                                                {"TEXT": {"REGEX": "^[Mm](ission)$"}}, #'mission'],
+                  'Purpose':                    [{"purpose": "[Pp](ur.?p.?.?se)"}, #'purpose',
+                                                {"meaning": "[Mm](eaning)"}, #'meaning',
+                                                {"mission": "[Mm](ission)"}, #'mission'],
                                                 ],
-                  'No answer/Nothing':          [],
-                  'Commmute':                   [{"TEXT": {"REGEX": "^[Cc](om.?ute)$"}}, #'commute',
-                                                {"TEXT": {"REGEX": "^[Dd](riving)$"}}, #'driving',
-                                                {"TEXT": {"REGEX": "^[Ll](ocation)$"}} # location'
+                  'Commmute':                   [{"commute": "[Cc](om.?ute)"}, #'commute',
+                                                {"drive": "[Dd](riv.?.?.?)"}, #'driving',
+                                                {"location": "[Ll](ocation)"} # location'
                                                 ],
-                  'Staffing level':             [{"TEXT": {"REGEX": "^[Hh](ead.?count)$"}}, #'head-count',
-                                                {"TEXT": {"REGEX": "^[Ss](taf.?.?.?.?)$"}}, #'staffing',
-                                                {"TEXT": {"REGEX": "^[Hh](ire)$"}}, #'hire',
-                                                {"TEXT": {"REGEX": "^[Ee](mployment)$"}}, #'employment'],
+                  'Staffing level':             [{"headcount": "[Hh](ead.?count)"}, #'head-count',
+                                                {"staff": "[Ss](taf.?.?.?.?)"}, #'staffing',
+                                                {"hire": "[Hh](ir.?.?.?)"}, #'hire',
+                                                {"employ": "[Ee](mploy.?.?.?.?)"}, #'employment'],
                                                 ],
-                  'Communication':              [{"TEXT": {"REGEX": "^[Ll](is.?en)$"}}, #'listen',
-                                                {"TEXT": {"REGEX": "^[Cc](om.?un.?cat.?.?.?.?)$"}} #'communicate, communication
+                  'Communication':              [{"listen": "[Ll](is.?en)"}, #'listen',
+                                                {"communicate": "[Cc](om.?un.?cat.?.?.?.?)"} #'communicate, communication
                                                 ],
-                  'Quality of care':            [{'TEXT': {'REGEX': "^[Cc](are)$"}}], #care AND residents,
-                  'Employee relations':         [{"TEXT": {"REGEX": "^[Pp](roblem.?)$"}}, #'problem',
-                                                {"TEXT": {"REGEX": "^[Hh](ar.?as.?.?.?.?.?)$"}}, #'harassment',
-                                                {"TEXT": {"REGEX": "^[Aa](bus.?.?.?)$"}}, #'abuse, abusing
-                                                {"TEXT": {"REGEX": "^[Ll](awyer)$"}}, #'lawyer',
-                                                {"TEXT": {"REGEX": "^[Tt](rouble)$"}}, #'trouble',
-                                                {"TEXT": {"REGEX": "^[Ss](ex)$"}}, #'sex',
-                                                {"TEXT": {"REGEX": "^[Rr](ace)$"}}, #'race',
-                                                {"TEXT": {"REGEX": "^[Gg](ender)$"}}, #'gender',
-                                                {"TEXT": {"REGEX": "^[Bb](igot.?.?.?)$"}}, #'bigot',
-                                                {"TEXT": {"REGEX": "^[Ig](nor.?.?.?)$"}}, #'ignorant', ignore
-                                                {"TEXT": {"REGEX": "^(.?.?legal.?)$"}}, #'illegal', 'legal'
-                                                {"TEXT": {"REGEX": "^[Cc](ollapse)$"}}, #'collapse',
-                                                {"TEXT": {"REGEX": "^[Ii](nterven.?.?.?.?)$"}}, #'intervention', intervene
+                  'Quality of care':            [{'care': "[Cc](are.?)"}], #care
+                  'Employee relations':         [{"problem": "[Pp](roblem.?)"}, #'problem',
+                                                {"harass": "[Hh](ar.?as.?.?.?.?.?)"}, #'harassment',
+                                                {"abuse": "[Aa](bus.?.?.?)"}, #'abuse, abusing
+                                                {"lawyer": "[Ll](awyer)"},
+                                                {"sue": "[Ss](ue)"}, #'sue',
+                                                {"trouble": "[Tt](rouble)"}, #'trouble',
+                                                {"sex": "[Ss](ex)"}, #'sex',
+                                                {"race": "[Rr](ace)"}, #'race',
+                                                {"gender": "[Gg](ender)"}, #'gender',
+                                                {"bigot": "[Bb](igot.?.?.?)"}, #'bigot',
+                                                {"ignore": "[Ig](nor.?.?.?)"}, #'ignorant', ignore
+                                                {"legal": "(.?.?legal.?)"}, #'illegal', 'legal'
+                                                {"collapse": "[Cc](ollapse)"}, #'collapse',
+                                                {"intervene": "[Ii](nterven.?.?.?.?)"}, #'intervention', intervene
                                                 ],
-                  'Facility/setting':           [{"TEXT": {"REGEX": "^[Ff](ac.?l.?t.?.?.?)$"}}, #'facilities',
-                                                {"TEXT": {"REGEX": "^[Mm](a.?nt.?n.?nce)$"}}, #'maintenance',
-                                                {"TEXT": {"REGEX": "^[Cc](lean.?.?.?)$"}}, #'clean', cleanly, cleaning
-                                                {"TEXT": {"REGEX": "^(.?.?hygen.?.?)$"}} #'hygenic', unhygenic
+                  'Facility/setting':           [{"facility": "[Ff](ac.?l.?t.?.?.?)"}, #'facilities',
+                                                {"maintain": "[Mm](a.?nt(ai|e)n.?.?.?.?)"}, #'maintain, maintenance',
+                                                {"clean": "[Cc](lean.?.?.?)"}, #'clean', cleanly, cleaning
+                                                {"hygene": "(.?.?hygen.?.?)"} #'hygenic', unhygenic
                                                 ]
                       }
 
@@ -119,12 +121,35 @@ class word_match(object):
     def match_topics(self, doc):
 
         # setup spacy matcher
+        matcher = Matcher(self.nlp.vocab)
         self.match_dict = dict((e, []) for e in self.topics)
         for topic,rules in self.topics.items():
-            matcher = Matcher(self.nlp.vocab)
-            matcher.add(rules)
-            matches = matcher(doc)
-            self.match_dict[topic] = matches
+            for rule in rules:
+                for key,regex in rule.items():
+                    for match in re.finditer(regex, doc.text):
+                        charstart, charend = match.span()
+                        span = doc.char_span(charstart, charend)
+                        if span is not None:
+                            match = span.text
+                            matcher.add(match, None, [{"TEXT": match}])
+                            matches = matcher(doc)
+                            for match_id, tok_start, tok_end in matches:
+                                start = tok_start
+                                end = tok_end
+                                print(doc.text)
+                                print(match)
+                                print('token indices = ' + str(start), end)
+                            if (start-self.context_win) < 0:
+                                context_start = 0
+                            else:
+                                context_start = start-self.context_win
+                            if (end + self.context_win) > len(doc):
+                                context_end = len(doc.text)
+                            else:
+                                context_end = end+self.context_win
+                            context_span = doc.char_span(context_start, context_end)
+                            print(match, context_span.text)
+                            return topic, key, match, context_span
 
 
     def plot_match_stats(self):
