@@ -87,7 +87,7 @@ class word_match(object):
                                                 {"location": "[Ll](ocation)"} # location'
                                                 ],
                   'Staffing level':             [{"headcount": "[Hh](ead.?count)"}, #'head-count',
-                                                {"staff": "[Ss](taf.?.?.?.?)"}, #'staffing',
+                                                {"staff": "[Ss](taff.?.?.?)"}, #'staffing',
                                                 {"hire": "[Hh](ir.?.?.?)"}, #'hire',
                                                 {"employ": "[Ee](mploy.?.?.?.?)"}, #'employment'],
                                                 ],
@@ -117,6 +117,22 @@ class word_match(object):
                                                 ]
                       }
 
+    def get_match_context(self, matches, doc):
+        for match_id, tok_start, tok_end in matches:
+            start = tok_start  # token position
+        if start - self.context_win < 0:
+            context_start = 0
+        else:
+            context_start = start - self.context_win
+        if start + self.context_win >= len(doc):
+            context_end = len(doc.text) - 1
+        else:
+            context_end = start + self.context_win
+        context_span = doc[context_start:context_end].text
+        #if context_span is None:
+            #print('ERROR CONTEXT SPAN IS NONE')
+        return context_span
+
 
     def match_topics(self, idx, doc):
         out_df = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'comment_text'])
@@ -134,28 +150,14 @@ class word_match(object):
                             matcher.add(match, None, [{"TEXT": match}])
                             matches = matcher(doc)
                             if matches:
-                                for match_id, tok_start, tok_end in matches:
-                                    start = tok_start
-                                    end = tok_end
-                                if start-self.context_win < 0:
-                                    context_start = 0
-                                else:
-                                    context_start = start-self.context_win
-                                if end + self.context_win >= len(doc):
-                                    context_end = len(doc.text)-1
-                                else:
-                                    context_end = end+self.context_win
-                                context_span = doc[context_start:context_end].text
-                                if context_span is None:
-                                    print('ERROR CONTEXT SPAN IS NONE')
+                                context_span = self.get_match_context(matches, doc)
                             else:
-                                #print('ERROR WITH SPACY TOKEN MATCHING!  ' + str(span.text))
+                                print('ERROR WITH SPACY TOKEN MATCHING!  ' + str(span.text))
                                 context_span = match
                             out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'context_span': context_span, 'comment_text':doc.text}
                         else:
                             out_dict = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'comment_text'])
                         # for eatch match append the results, unless there was an error else append ''
-                        #print(out_dict)
                         out_df = out_df.append(out_dict, ignore_index=True)
         return out_df
 
