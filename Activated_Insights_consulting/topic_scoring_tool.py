@@ -5,6 +5,7 @@ import timeit
 import spacy
 
 from word_match import regex_matcher
+from classify import classify_labels
 
 
 ######################################
@@ -15,7 +16,7 @@ def regex_find_topics(df, nlp):
 
     match = regex_matcher()
     match_df = pd.DataFrame()
-    for t, text in enumerate(df['comment_text']):
+    for t, text in enumerate(df['text']):
         doc = nlp(text)
         out_df = match.match_topics(t, doc)
         match_df = match_df.append(out_df)
@@ -38,7 +39,10 @@ def main(run_regex=False, num_examples=10):
 
     model = 'en_core_web_sm'  # only minimal model needed
     nlp = spacy.load(model)
-    df = read_matched_csv()
+
+    classify = classify_labels()
+    classify.load_data()
+    df = classify.ul_df # get unlabeled dataframe
 
     if run_regex:
         df = regex_find_topics(df, nlp)
@@ -51,7 +55,7 @@ def main(run_regex=False, num_examples=10):
         topic_idx = np.arange(0,len(topic_df))
         topic_rand_idx = np.random.choice(topic_idx, 1)
         for i,idx in enumerate(topic_rand_idx):
-            text = topic_df['comment_text'].iloc[idx]
+            text = topic_df['text'].iloc[idx]
             print('topic: ' + str(topic))
             print('text: ' + str(text))
             val = input('correct class y/n?')

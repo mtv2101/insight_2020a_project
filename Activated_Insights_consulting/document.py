@@ -10,7 +10,7 @@ class survey_doc(object):
 
     def __init__(self,
                  data_path,
-                 header=1,
+                 header = 1,
                  model = 'en_core_web_sm'):
 
         self.data_path = data_path

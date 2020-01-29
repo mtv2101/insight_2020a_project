@@ -96,7 +96,8 @@ class regex_matcher(object):
                                                 {"communicate": "[Cc](om.?un.?cat.?.?.?.?)"} #'communicate, communication
                                                 ],
                   'Quality of care':            [{'care': "[Cc](are.?)"},
-                                                {'compassion': "[Cc](compassion.?.?.?)"}], #compassionate
+                                                {'compassion': "[Cc](compassion.?.?.?)"}#compassionate
+                                                ],
                   'Employee relations':         [{"harass": "[Hh](ar.?as.?.?.?.?.?)"}, #'harassment',
                                                 {"abuse": "[Aa](bus.?.?.?)"}, #'abuse, abusing
                                                 {"lawyer": "[Ll](awyer)"},
@@ -115,7 +116,7 @@ class regex_matcher(object):
                                                 {"maintain": "[Mm](a.?nt(ai|e)n.?.?.?.?)"}, #'maintain, maintenance',
                                                 {"clean": "[Cc](lean.?.?.?)"}, #'clean', cleanly, cleaning
                                                 {"hygene": "(.?.?hygen.?.?)"}, #hygeneic, unhygenic
-                                                {"resort": "([Rr](resort)"},
+                                                {"resort": "[Rr](resort)"},
                                                 {"physical plant": "[Pp](hysical.?plant)"}#
                                                 ]
                       }
@@ -138,7 +139,7 @@ class regex_matcher(object):
 
 
     def match_topics(self, idx, doc):
-        out_df = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'comment_text'])
+        out_df = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'text'])
         # setup spacy matcher
         matcher = Matcher(self.nlp.vocab)
         self.match_dict = dict((e, []) for e in self.topics)
@@ -155,11 +156,11 @@ class regex_matcher(object):
                             if matches:
                                 context_span = self.get_match_context(matches, doc)
                             else:
-                                print('ERROR WITH SPACY TOKEN MATCHING!  ' + str(span.text))
+                                #print('ERROR WITH SPACY TOKEN MATCHING!  ' + str(span.text))
                                 context_span = match
-                            out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'context_span': context_span, 'comment_text':doc.text}
+                            out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'context_span': context_span, 'text':doc.text}
                         else:
-                            out_dict = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'comment_text'])
+                            out_dict = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'text'])
                         # for eatch match append the results, unless there was an error else append ''
                         out_df = out_df.append(out_dict, ignore_index=True)
         return out_df

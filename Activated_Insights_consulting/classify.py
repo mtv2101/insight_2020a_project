@@ -15,7 +15,7 @@ import document
 
 class classify_labels(object):
 
-    def __init__(self, question = 'q1'):
+    def __init__(self, question = 'both'):
 
         self.question = question
         self.load_data()
@@ -52,6 +52,9 @@ class classify_labels(object):
         elif self.question=='q2':
             self.ul_df = self.q2_df
             self.l_df = self.l_data_q2
+        elif self.question=='both':
+            self.ul_df = self.q1_df.append(self.q2_df, ignore_index=True)
+            self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
 
 
     def init_model(self, models = ['logit']):
