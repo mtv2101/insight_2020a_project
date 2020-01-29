@@ -95,9 +95,9 @@ class regex_matcher(object):
                   'Communication':              [{"listen": "[Ll](is.?en)"}, #'listen',
                                                 {"communicate": "[Cc](om.?un.?cat.?.?.?.?)"} #'communicate, communication
                                                 ],
-                  'Quality of care':            [{'care': "[Cc](are.?)"}], #care
-                  'Employee relations':         [{"problem": "[Pp](roblem.?)"}, #'problem',
-                                                {"harass": "[Hh](ar.?as.?.?.?.?.?)"}, #'harassment',
+                  'Quality of care':            [{'care': "[Cc](are.?)"},
+                                                {'compassion': "[Cc](compassion.?.?.?)"}], #compassionate
+                  'Employee relations':         [{"harass": "[Hh](ar.?as.?.?.?.?.?)"}, #'harassment',
                                                 {"abuse": "[Aa](bus.?.?.?)"}, #'abuse, abusing
                                                 {"lawyer": "[Ll](awyer)"},
                                                 {"sue": "[Ss](ue)"}, #'sue',
@@ -114,7 +114,9 @@ class regex_matcher(object):
                   'Facility/setting':           [{"facility": "[Ff](ac.?l.?t.?.?.?)"}, #'facilities',
                                                 {"maintain": "[Mm](a.?nt(ai|e)n.?.?.?.?)"}, #'maintain, maintenance',
                                                 {"clean": "[Cc](lean.?.?.?)"}, #'clean', cleanly, cleaning
-                                                {"hygene": "(.?.?hygen.?.?)"} #'hygenic', unhygenic
+                                                {"hygene": "(.?.?hygen.?.?)"}, #hygeneic, unhygenic
+                                                {"resort": "([Rr](resort)"},
+                                                {"physical plant": "[Pp](hysical.?plant)"}#
                                                 ]
                       }
 
