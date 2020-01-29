@@ -10,7 +10,7 @@ from spacy.lang.en import English
 
 
 
-class word_match(object):
+class regex_matcher(object):
 
     def __init__(self, model = 'en_core_web_sm', context_win=3):
 
@@ -68,7 +68,8 @@ class word_match(object):
                   'Pay':                        [{"money": "[Mm](oney)"}, #'money',
                                                 {"pay": "[Pp](ay.?.?.?.?.?)"}, #'pay', paycheck, payment
                                                 {"debt": "[Dd](ebt)"}, #'debt',
-                                                {"loan": "[Ll](oan.?)"} # loan
+                                                {"loan": "[Ll](oan.?)"},
+                                                {"raise": "[Rr](aise.?)"}
                                                 ],
                   'Recognition':                [{"recognition": "[Rr](ecognition.?)"}, #'recognition',
                                                 {"appreciation": "[Aa](p.?rec.?.?t.?.?.?)"} #'appreciation'],
