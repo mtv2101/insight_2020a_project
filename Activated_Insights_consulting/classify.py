@@ -57,15 +57,14 @@ class classify_labels(object):
             self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
 
 
-    def init_model(self, models = ['logit']):
+    def init_model(self, model = 'logit'):
 
-        for model in models:
-            if model=='logit':
-                self.logit = LogisticRegression(class_weight='balanced',
-                                           random_state=42,
-                                           multi_class='multinomial',
-                                           verbose=1,
-                                           max_iter=1000)
+        if model == 'logit':
+            self.logit = LogisticRegression(class_weight='balanced',
+                                       random_state=42,
+                                       multi_class='multinomial',
+                                       verbose=1,
+                                       max_iter=1000)
 
 
     def tfidf_by_class(self, df):
@@ -77,7 +76,7 @@ class classify_labels(object):
         for topic in topics:
             temp_df = df[df['topic'] == topic]
             data = [sent for sent in df.comment_text]
-            n_features = 1000
+            n_features = 200
             tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
                                                max_features=n_features,
                                                stop_words='english')
@@ -97,7 +96,7 @@ class classify_labels(object):
         get tfidf vectors on labeled and unlabelled data
         '''
         data = [sent for sent in df.text]
-        n_features = 1000
+        n_features = 200
         tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
                                            max_features=n_features,
                                            stop_words='english')
@@ -112,8 +111,9 @@ class classify_labels(object):
     @staticmethod
     def train_test(self, model):
 
-        X = self.tfidf(self.ul_df)
-        y = self.tfidf(self.l_df)
+        #X = self.tfidf(self.ul_df)
+        X = self.tfidf(self.l_df)
+        y = self.l_df['JK label'].values
         print(len(self.ul_df), len(self.l_df))
         print(X.shape, y.shape)
 
@@ -123,11 +123,11 @@ class classify_labels(object):
 
         for train_index, test_index in skf.split(X, y):
             X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
+            y_train, y_test = y[train_index].T, y[test_index].T
 
             self.logit.fit(X_train, y_train)
             y_pred = self.logit.predict((X_test))
 
             print('accuracy = ' + str(metrics.accuracy_score(y_test, y_pred)))
             print('balenced accuracy = ' + str(metrics.balanced_accuracy_score(y_test, y_pred)))
-            print('macro precision = ' + str(metrics.precision_score(y_test, y_pred)))
+            print('macro precision = ' + str(metrics.precision_score(y_test, y_pred, average='macro')))
