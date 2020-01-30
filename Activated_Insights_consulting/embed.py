@@ -1,6 +1,8 @@
 
 import numpy as np
 import pandas as pd
+import spacy
+from spacy.lang.en import English
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold, StratifiedKFold
@@ -13,12 +15,14 @@ import document
 ##############################
 
 
-class classify_labels(object):
+class embeddings(object):
 
-    def __init__(self, question = 'both'):
+    def __init__(self, question = 'both', model = 'tfidf'):
 
         self.question = question
+        self.model = model
         self.load_data()
+        #self.mat = self.embed_data()
 
 
     def load_data(self):
@@ -36,35 +40,39 @@ class classify_labels(object):
             data_q2 = data.df[(data.df['QID']==62) | (data.df['QID']=='One Change')]
             self.q2_df = self.q2_df.append(data_q2, ignore_index=True)
 
-        labelled_data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/Labeled data and sentiments 2017-18 data2.csv']
-        labeled_data = document.survey_doc(labelled_data_path[0], header=0)
+        labelled_data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
+        labeled_data = document.survey_doc(labelled_data_path[0])
         labeled_data.clean_labelled_data()
-        self.l_data_q1 = labeled_data.df[labeled_data.df['QID'] == 61]
-        self.l_data_q2 = labeled_data.df[labeled_data.df['QID'] == 62]
+        self.l_df = labeled_data.df
+        #self.l_data_q1 = labeled_data.df[labeled_data.df['QID'] == 61]
+        #self.l_data_q2 = labeled_data.df[labeled_data.df['QID'] == 62]
 
         self.choose_data()
 
 
     def choose_data(self):
+
         if self.question=='q1':
             self.ul_df = self.q1_df
-            self.l_df = self.l_data_q1
+            #self.l_df = self.l_data_q1
         elif self.question=='q2':
             self.ul_df = self.q2_df
-            self.l_df = self.l_data_q2
+            #self.l_df = self.l_data_q2
         elif self.question=='both':
             self.ul_df = self.q1_df.append(self.q2_df, ignore_index=True)
-            self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
+            #self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
 
 
-    def init_model(self, model = 'logit'):
+    def embed_data(self):
+        models = ['tfidf', 'tfidf_by_class', 'bert']
+        assert self.model in models
 
-        if model == 'logit':
-            self.logit = LogisticRegression(class_weight='balanced',
-                                       random_state=42,
-                                       multi_class='multinomial',
-                                       verbose=1,
-                                       max_iter=1000)
+        if self.model == 'tfidf_by_class':
+            return self.tfidf_by_class(self.ul_df)
+        if self.model == 'tfidf':
+            return self.tfidf(self.ul_df)
+        if self.model == 'bert':
+            self.l_bert = self.bert(self.l_df)
 
 
     def tfidf_by_class(self, df):
@@ -108,26 +116,18 @@ class classify_labels(object):
         return tfidf_mat
 
 
-    @staticmethod
-    def train_test(self, model):
+    def bert(self, df):
 
-        #X = self.tfidf(self.ul_df)
-        X = self.tfidf(self.l_df)
-        y = self.l_df['JK label'].values
-        print(len(self.ul_df), len(self.l_df))
-        print(X.shape, y.shape)
+        # model = 'en_core_web_sm'  # for testing on laptop
+        # model = 'en_core_web_lg'
+        # model = 'en_vectors_web_lg' # many more words
+        model = 'en_trf_bertbaseuncased_lg'
+        nlp = spacy.load(model)
 
-        self.init_model(model)
+        data = [sent for sent in df.text]
+        vectors = [nlp(d) for d in data]
+        vectors = np.array(vectors)
 
-        skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+        np.save('regex_labelled_bert_embeddings.npy', vectors)
 
-        for train_index, test_index in skf.split(X, y):
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index].T, y[test_index].T
-
-            self.logit.fit(X_train, y_train)
-            y_pred = self.logit.predict((X_test))
-
-            print('accuracy = ' + str(metrics.accuracy_score(y_test, y_pred)))
-            print('balenced accuracy = ' + str(metrics.balanced_accuracy_score(y_test, y_pred)))
-            print('macro precision = ' + str(metrics.precision_score(y_test, y_pred, average='macro')))
+        return vectors

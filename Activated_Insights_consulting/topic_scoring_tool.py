@@ -5,13 +5,13 @@ import timeit
 import spacy
 
 from word_match import regex_matcher
-from classify import classify_labels
+from embed import embeddings
 
 
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=10000):
+def regex_find_topics(df, nlp, num_matches=20000):
     start_time = timeit.default_timer()
 
     match = regex_matcher()
@@ -24,20 +24,23 @@ def regex_find_topics(df, nlp, num_matches=10000):
             doc = nlp(text)
             out_df = match.match_topics(t, doc)
             match_df = match_df.append(out_df)
+        sub_df = df[df.index.isin(match_idx)]
+        out_df = pd.join([sub_df, match_df])
     else:
+        # BROKEN!!!
         for t, text in enumerate(df['text']):
             doc = nlp(text)
             out_df = match.match_topics(t, doc)
             match_df = match_df.append(out_df)
 
-    match_df.reset_index(drop=True, inplace=True)
+    out_df.reset_index(inplace=True)
 
     process_time = timeit.default_timer() - start_time
     print(str(len(df)) + ' submissions, query took ' + str(process_time) + ' seconds')
 
-    pd.to_pickle(match_df, 'regex_scored_df.pkl')
+    pd.to_pickle(out_df, 'regex_scored_df.pkl')
 
-    return match_df
+    return out_df
 
 
 def read_matched_csv():
@@ -86,9 +89,9 @@ def main(run_regex=True, do_hand_scoring=False):
     model = 'en_core_web_sm'  # only minimal model needed
     nlp = spacy.load(model)
 
-    classify = classify_labels()
-    classify.load_data()
-    df = classify.ul_df # get unlabeled dataframe
+    embeds = embeddings()
+    embeds.load_data()
+    df = embeds.ul_df # get unlabeled dataframe
 
     if run_regex:
         df = regex_find_topics(df, nlp)

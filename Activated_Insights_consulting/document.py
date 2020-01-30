@@ -17,11 +17,20 @@ class survey_doc(object):
         self.header = header
         self.model = model
 
-        self.load_csv()
+        if data_path[-4:] == '.csv':
+            self.load_csv()
+        elif data_path[-4:] == '.pkl':
+            self.load_pickle()
+        else:
+            print('unrecognized file format')
 
 
     def load_csv(self):
         self.df = pd.read_csv(self.data_path, header=self.header)
+
+
+    def load_pickle(self):
+        self.df = pd.read_pickle(self.data_path)
 
 
     def filter_str_length(self, strng, thresh=2):
@@ -42,9 +51,32 @@ class survey_doc(object):
 
     def clean_labelled_data(self):
         self.df = self.df.dropna(how='any')
-        self.df = self.df.rename(columns={'Comment': 'text'})
-        self.df = self.df[['QID', 'text', 'JK label', 'JK sentiment']]
-        self.df = self.df[self.df['JK label'] != 'No answer/Nothing']
+
+        # merge rows by comment index, one-hot encode classes
+        com_ids = self.df.comment_idx.unique()
+        labels = []
+        idx = []
+        text = []
+        for i,id in enumerate(com_ids):
+            idx.append(id)
+            com_df = self.df[self.df['comment_idx'] == id]
+            com_labs = com_df.topic.unique()
+            labels.append(com_labs)
+            text.append(self.df.iloc[i]['text'])
+
+        print(len(self.df), len(labels))
+        multilabel_df = pd.DataFrame()
+        multilabel_df['comment_idx'] = idx
+        multilabel_df['labels'] = labels
+        multilabel_df['text'] = text
+
+        onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
+
+        self.onehot = pd.concat([multilabel_df, onehot], axis=1)
+
+        #self.df = self.df.rename(columns={'Comment': 'text'})
+        #self.df = self.df[['QID', 'text', 'JK label', 'JK sentiment']]
+        #self.df = self.df[self.df['JK label'] != 'No answer/Nothing']
 
 
     def init_model(self):
