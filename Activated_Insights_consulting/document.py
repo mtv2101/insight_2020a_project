@@ -64,7 +64,7 @@ class survey_doc(object):
             labels.append(com_labs)
             text.append(self.df.iloc[i]['text'])
 
-        print(len(self.df), len(labels))
+        print('regex provides ' + str(len(self.df)) + ' matches, ' + str(len(labels)) + ' unique labels')
         multilabel_df = pd.DataFrame()
         multilabel_df['comment_idx'] = idx
         multilabel_df['labels'] = labels

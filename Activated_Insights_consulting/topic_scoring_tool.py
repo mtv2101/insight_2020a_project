@@ -6,6 +6,7 @@ import spacy
 
 from word_match import regex_matcher
 from embed import embeddings
+from tri_training import one_hot
 
 
 ######################################
@@ -24,8 +25,28 @@ def regex_find_topics(df, nlp, num_matches=20000):
             doc = nlp(text)
             out_df = match.match_topics(t, doc)
             match_df = match_df.append(out_df)
-        sub_df = df[df.index.isin(match_idx)]
-        out_df = pd.join([sub_df, match_df])
+
+        com_ids = match_df.comment_idx.unique()
+        labels = []
+        idx = []
+        for id in com_ids:
+            idx.append(int(id))
+            com_df = match_df[match_df['comment_idx'] == id]
+            com_labs = com_df.topic.unique()
+            labels.append(com_labs)
+
+        multilabel_df = pd.DataFrame()
+        multilabel_df['comment_idx'] = idx
+        multilabel_df['labels'] = labels
+
+        onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
+
+        sub_df = df[df.index.isin(com_ids)]
+
+        out_df = pd.concat([multilabel_df, onehot], axis=1)
+        print(out_df.keys())
+        #print(out_df.QID)
+
     else:
         # BROKEN!!!
         for t, text in enumerate(df['text']):
@@ -90,7 +111,7 @@ def main(run_regex=True, do_hand_scoring=False):
     nlp = spacy.load(model)
 
     embeds = embeddings()
-    embeds.load_data()
+    embeds.load_unlabeled_data()
     df = embeds.ul_df # get unlabeled dataframe
 
     if run_regex:
@@ -100,6 +121,8 @@ def main(run_regex=True, do_hand_scoring=False):
 
     if do_hand_scoring:
         hand_score(df, num_examples=10)
+
+    return df
 
 
 if __name__ == "__main__":

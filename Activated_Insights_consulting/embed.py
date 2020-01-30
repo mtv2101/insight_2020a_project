@@ -9,7 +9,7 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn import metrics
 
-import document
+from document import survey_doc
 
 
 ##############################
@@ -21,11 +21,11 @@ class embeddings(object):
 
         self.question = question
         self.model = model
-        self.load_data()
+        self.load_unlabeled_data()
         #self.mat = self.embed_data()
 
 
-    def load_data(self):
+    def load_unlabeled_data(self):
 
         paths = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2017 to mid 2018 comments.csv',
                  '~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2018 to mid 2019 comments.csv']
@@ -33,34 +33,25 @@ class embeddings(object):
         self.q1_df = pd.DataFrame()
         self.q2_df = pd.DataFrame()
         for data_path in paths:
-            data = document.survey_doc(data_path)
+            data = survey_doc(data_path)
             data.clean_unlabelled_data()
             data_q1 = data.df[(data.df['QID']==61) | (data.df['QID']=='Unique / Unusual')]
             self.q1_df = self.q1_df.append(data_q1, ignore_index=True)
             data_q2 = data.df[(data.df['QID']==62) | (data.df['QID']=='One Change')]
             self.q2_df = self.q2_df.append(data_q2, ignore_index=True)
 
+        self.ul_df = self.q1_df.append(self.q2_df, ignore_index=True)
+
+    def load_labeled_data(self):
         labelled_data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
-        labeled_data = document.survey_doc(labelled_data_path[0])
+        labeled_data = survey_doc(labelled_data_path[0])
         labeled_data.clean_labelled_data()
         self.l_df = labeled_data.df
         #self.l_data_q1 = labeled_data.df[labeled_data.df['QID'] == 61]
         #self.l_data_q2 = labeled_data.df[labeled_data.df['QID'] == 62]
 
-        self.choose_data()
+        self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
 
-
-    def choose_data(self):
-
-        if self.question=='q1':
-            self.ul_df = self.q1_df
-            #self.l_df = self.l_data_q1
-        elif self.question=='q2':
-            self.ul_df = self.q2_df
-            #self.l_df = self.l_data_q2
-        elif self.question=='both':
-            self.ul_df = self.q1_df.append(self.q2_df, ignore_index=True)
-            #self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
 
 
     def embed_data(self):
@@ -104,7 +95,7 @@ class embeddings(object):
         get tfidf vectors on labeled and unlabelled data
         '''
         data = [sent for sent in df.text]
-        n_features = 200
+        n_features = 500
         tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
                                            max_features=n_features,
                                            stop_words='english')
