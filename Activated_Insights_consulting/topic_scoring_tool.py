@@ -6,13 +6,12 @@ import spacy
 
 from word_match import regex_matcher
 from embed import embeddings
-from tri_training import one_hot
 
 
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=20000):
+def regex_find_topics(df, nlp, num_matches=50000):
     start_time = timeit.default_timer()
 
     match = regex_matcher()

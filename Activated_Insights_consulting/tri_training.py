@@ -3,12 +3,16 @@ import pandas as pd
 import os
 import timeit
 import matplotlib.pyplot as plt
+from random import choices
 
+from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
-from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.model_selection import GroupKFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn import metrics
 from sklearn.pipeline import Pipeline
@@ -24,7 +28,7 @@ import embed
 ############################################3
 
 
-def main(num_iters=1):
+def main():
 
     X, y, X_ul, categories = load_data()
 
@@ -32,8 +36,7 @@ def main(num_iters=1):
 
     models = setup_pipes()
 
-    for n in range(num_iters):
-        fit(X_pca,y,X_ul_pca,models,categories)
+    fit(X_pca,y,X_ul_pca,models)
 
 
 
@@ -60,15 +63,22 @@ def load_data():
 def setup_pipes():
 
     LogReg_pipeline = Pipeline([('clf', OneVsRestClassifier(LogisticRegression(solver='sag',
-                                                                               multi_class='multinomial',
-                                                                               class_weight='balanced'),
+                                                                               multi_class='ovr',
+                                                                               C=1.0,
+                                                                               class_weight='None',
+                                                                               random_state=42,
+                                                                               max_iter=1000),
                                                             n_jobs=-1)),])
 
-    Forest_pipeline = Pipeline([('clf', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50)))])
+    Forest_pipeline = Pipeline([('clf', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50,
+                                                                               random_state=42),
+                                                            n_jobs=-1))])
 
-    MLP_pipeline = Pipeline([('clf', OneVsRestClassifier(MLPClassifier()))])
+    #MLP_pipeline = Pipeline([('clf', OneVsRestClassifier(MLPClassifier(), n_jobs=-1))])
+    KNN_pipeline = Pipeline([('clf', OneVsRestClassifier(KNeighborsClassifier(weights='distance')
+                                                         , n_jobs=-1))])
 
-    return [LogReg_pipeline, Forest_pipeline, MLP_pipeline]
+    return [LogReg_pipeline, Forest_pipeline, KNN_pipeline]
 
 
 def pca_reduce(X, X_ul):
@@ -88,40 +98,64 @@ def pca_reduce(X, X_ul):
     return X_pca, X_ul_pca
 
 
-def fit(X,y,X_ul,models,categories):
-    for model in models:
-        start_time = timeit.default_timer()
-        model.fit(X, y)
-        process_time = timeit.default_timer() - start_time
-        print(str(model) + ' training and predictions took: ' + str(process_time) + ' seconds')
-'''
-    for c,category in enumerate(categories):
+def fit(X,y,X_ul,models,predict_size=1000):
 
-        
+    num_folds = 1
+
+    X = preprocessing.scale(X)
+    X_ul = preprocessing.scale(X_ul)
+
+    idx_array = np.arange(0,X_ul.shape[0])
+    pred_idx = choices(idx_array, k=predict_size)
+
+    for n in range(num_folds):
+
+        predict = X_ul[pred_idx,:]
+
+        print(X.shape, y.shape, X_ul.shape, predict.shape)
+
+        preds = []
         for model in models:
 
-            #X_train, X_test, y_train, y_test = train_test_split(X, y,
-            #                                                    random_state=42,
-            #                                                    stratify=y,
-            #                                                    test_size=0.1)
-
             start_time = timeit.default_timer()
-            model.fit(X, y[:,c])
 
-
-            # calculate metrics
-            #y_pred = model.predict(X_ul)
-            #print('accuracy = ' + str(metrics.accuracy_score(y_test, y_pred)))
-            #print('balenced accuracy = ' + str(metrics.balanced_accuracy_score(y_test, y_pred)))
-            #print('macro precision = ' + str(metrics.precision_score(y_test, y_pred,
-            #                                                         average='macro')))
-            #print('recall score = ' + str(metrics.recall_score(y_test, y_pred,
-            #                                                   average='macro')))
-            #print("\n")
+            model.fit(X, y)
+            predictions = model.predict(predict)
+            preds.append(predictions)
 
             process_time = timeit.default_timer() - start_time
             print(str(model) + ' training and predictions took: ' + str(process_time) + ' seconds')
-'''
+
+        p1,p2,p3 = zip(preds)
+        ensemble = np.vstack([p1,p2,p3])
+        print(ensemble.shape)
+
+
+
+        '''
+
+        #X_train, X_test, y_train, y_test = train_test_split(X, y,
+        #                                                    random_state=42,
+        #                                                    stratify=y,
+        #                                                    test_size=0.1)
+
+        start_time = timeit.default_timer()
+        model.fit(X, y[:,c])
+
+
+        # calculate metrics
+        #y_pred = model.predict(X_ul)
+        #print('accuracy = ' + str(metrics.accuracy_score(y_test, y_pred)))
+        #print('balenced accuracy = ' + str(metrics.balanced_accuracy_score(y_test, y_pred)))
+        #print('macro precision = ' + str(metrics.precision_score(y_test, y_pred,
+        #                                                         average='macro')))
+        #print('recall score = ' + str(metrics.recall_score(y_test, y_pred,
+        #                                                   average='macro')))
+        #print("\n")
+
+        process_time = timeit.default_timer() - start_time
+        print(str(model) + ' training and predictions took: ' + str(process_time) + ' seconds')
+        '''
 
 
 @staticmethod
