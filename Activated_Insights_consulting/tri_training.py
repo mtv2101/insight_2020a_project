@@ -36,7 +36,7 @@ def main():
 
     models = setup_pipes()
 
-    fit(X_pca,y,X_ul_pca,models)
+    tri_fit(X_pca,y,X_ul_pca,models)
 
 
 
@@ -98,64 +98,92 @@ def pca_reduce(X, X_ul):
     return X_pca, X_ul_pca
 
 
-def fit(X,y,X_ul,models,predict_size=1000):
+def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
 
-    num_folds = 1
+    start_time = timeit.default_timer()
+
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_ul)
+
+    process_time = timeit.default_timer() - start_time
+    print(str(model) + ' training and predictions took: ' + str(process_time) + ' seconds')
+
+    # calculate metrics
+    y_pred = model.predict(X_test)
+    print('accuracy = ' + str(metrics.accuracy_score(y_test, y_pred)))
+    print('macro precision = ' + str(metrics.precision_score(y_test, y_pred,
+                                                             average='macro')))
+    print('recall score = ' + str(metrics.recall_score(y_test, y_pred,
+                                                       average='macro')))
+    print("\n")
+
+    process_time = timeit.default_timer() - start_time
+    print(str(model) + ' training and predictions took: ' + str(process_time) + ' seconds')
+
+    return predictions
+
+
+def find_consensus(predictions, training_dat, X_ul):
+
+    X0, X1, X2 = zip(training_dat)
+
+    p1, p2, p3 = zip(predictions)
+    ensemble = np.vstack([p1, p2, p3])
+    print(ensemble.shape)
+
+    X0_newdata = []
+    X1_newdata = []
+    X2_newdata = []
+    consensus = np.mean(ensemble, axis=3)
+    for i in range(consensus.shape[1]):
+        if (consensus[0, i] != consensus[1, i]) and (consensus[0, i] != consensus[2, i]) and (
+                consensus[1, i] == consensus[2, i]):
+            X0_newdata.append(X_ul[i, :])
+        elif (consensus[1, i] != consensus[0, i]) and (consensus[1, i] != consensus[2, i]) and (
+                consensus[0, i] == consensus[2, i]):
+            X1_newdata.append(X_ul[i, :])
+        elif (consensus[2, i] != consensus[0, i]) and (consensus[2, i] != consensus[1, i]) and (
+                consensus[1, i] == consensus[0, i]):
+            X2_newdata.append(X_ul[i, :])
+
+    X0 = np.vstack([X0, np.array(X0_newdata)])
+
+    X1 = np.vstack([X1, np.array(X1_newdata)])
+
+    X2 = np.vstack([X2, np.array(X2_newdata)])
+
+    training_dat = [X0, X1, X2]
+
+    return training_dat
+
+
+
+
+def tri_fit(X,y,X_ul,models,predict_size=1000):
+
+    num_folds = 3
 
     X = preprocessing.scale(X)
     X_ul = preprocessing.scale(X_ul)
+    X_train, X_test, y_train, y_test = train_test_split(X,y, random_state=42,test_size=0.2)
 
-    idx_array = np.arange(0,X_ul.shape[0])
-    pred_idx = choices(idx_array, k=predict_size)
+    # initialize three copies of training data before accumulating model-specific examples
+    training_dat = [X_train, X_train, X_train]
 
     for n in range(num_folds):
 
-        predict = X_ul[pred_idx,:]
-
-        print(X.shape, y.shape, X_ul.shape, predict.shape)
+        print(X_train.shape, y_train.shape, X_test.shape, y_test.shape, X_ul.shape, predict.shape)
 
         preds = []
-        for model in models:
+        for m,model in enumerate(models):
+            X_train = model_dat[m]
+            preds.append(generic_fit(model, X_train, y_train, X_test, y_test))
 
-            start_time = timeit.default_timer()
-
-            model.fit(X, y)
-            predictions = model.predict(predict)
-            preds.append(predictions)
-
-            process_time = timeit.default_timer() - start_time
-            print(str(model) + ' training and predictions took: ' + str(process_time) + ' seconds')
-
-        p1,p2,p3 = zip(preds)
-        ensemble = np.vstack([p1,p2,p3])
-        print(ensemble.shape)
+        model_dat = find_consensus(preds, training_dat, X_ul)
 
 
 
-        '''
 
-        #X_train, X_test, y_train, y_test = train_test_split(X, y,
-        #                                                    random_state=42,
-        #                                                    stratify=y,
-        #                                                    test_size=0.1)
-
-        start_time = timeit.default_timer()
-        model.fit(X, y[:,c])
-
-
-        # calculate metrics
-        #y_pred = model.predict(X_ul)
-        #print('accuracy = ' + str(metrics.accuracy_score(y_test, y_pred)))
-        #print('balenced accuracy = ' + str(metrics.balanced_accuracy_score(y_test, y_pred)))
-        #print('macro precision = ' + str(metrics.precision_score(y_test, y_pred,
-        #                                                         average='macro')))
-        #print('recall score = ' + str(metrics.recall_score(y_test, y_pred,
-        #                                                   average='macro')))
-        #print("\n")
-
-        process_time = timeit.default_timer() - start_time
-        print(str(model) + ' training and predictions took: ' + str(process_time) + ' seconds')
-        '''
 
 
 @staticmethod
