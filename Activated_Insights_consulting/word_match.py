@@ -58,7 +58,7 @@ class regex_matcher(object):
                                                 {"maternity": "[Mm](aternity)"},
                                                 {"paternity": "[Pp](aternity)"}#
                                                 ],
-                  'Support and resources':      [{"support": "[Ss](upport)"}, #'support',
+                  'Materials and resources':    [{"support": "[Ss](upport)"}, #'support',
                                                 {"resource": "[Rr](eso.?rc.?.?.?)"} #resources, resourcing
                                                 ],
                   'Customers':                  [{"resident": "[Rr](es.?d.?nt.?)"}, # resident,
