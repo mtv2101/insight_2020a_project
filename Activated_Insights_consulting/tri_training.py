@@ -26,8 +26,6 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 
-import document
-import embed
 
 
 ############################################3
@@ -65,7 +63,7 @@ def load_data():
 
 def setup_pipes():
 
-    LogReg_pipeline = Pipeline([('clf', OneVsRestClassifier(LogisticRegression(solver='sag',
+    LogReg = Pipeline([('clf', OneVsRestClassifier(LogisticRegression(solver='sag',
                                                                                multi_class='ovr',
                                                                                C=1.0,
                                                                                class_weight='None',
@@ -73,24 +71,28 @@ def setup_pipes():
                                                                                max_iter=1000),
                                                             n_jobs=-1))])
 
-    AdaBoost_pipeline = Pipeline([('clf', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50,
+    AdaBoost = Pipeline([('clf', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50,
                                                                                random_state=42),
                                                             n_jobs=-1))])
 
-    Forest_class = RandomForestClassifier(n_estimators=50, random_state=42, max_depth=10, min_samples_leaf=3, n_jobs=-1)
+    RForest = Pipeline([('clf', OneVsRestClassifier(RandomForestClassifier(n_estimators=50, random_state=42, max_depth=5, min_samples_leaf=3),
+                                                         n_jobs=-1))])
 
 
-    MLP_class = MLPClassifier(tol=1e-3, max_iter=1000, n_jobs=-1)
+    MLP = Pipeline([('clf', OneVsRestClassifier(MLPClassifier(tol=1e-3, max_iter=1000),
+                                                      n_jobs=-1))])
 
-    GP_class = GaussianProcessClassifier(max_iter_predict = 1000, multi_class = 'one_vs_rest', n_jobs=-1)
+    GP = Pipeline([('clf', OneVsRestClassifier(GaussianProcessClassifier(max_iter_predict = 1000, multi_class = 'one_vs_rest'),
+                                                     n_jobs=-1))])
 
-    KNN_pipeline = Pipeline([('clf', OneVsRestClassifier(KNeighborsClassifier(n_neighbors=5,
+    KNN = Pipeline([('clf', OneVsRestClassifier(KNeighborsClassifier(n_neighbors=5,
                                                                               leaf_size=100,
                                                                               weights='uniform',
                                                                               algorithm='ball_tree'),
                                                            n_jobs=-1))])
 
-    return [GP_class, Forest_class, MLP_class]
+    models = {'LogReg':LogReg, 'RForest':RForest, 'MLP':MLP}
+    return models
 
 
 def pca_reduce(X, X_ul):
@@ -113,12 +115,12 @@ def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
     start_time = timeit.default_timer()
     model.fit(X_train, y_train)
     process_time = timeit.default_timer() - start_time
-    print(str(model) + ' training on ' + str(X_train.shape[0]) + ' took: ' + str(process_time) + ' seconds')
+    print('training on ' + str(X_train.shape[0]) + ' took: ' + str(process_time) + ' seconds')
 
     start_time = timeit.default_timer()
     predictions = model.predict(X_ul)
     process_time = timeit.default_timer() - start_time
-    print(str(model) + ' predictions on ' + str(X_ul.shape[0]) + ' unlabeled data took: ' + str(process_time) + ' seconds')
+    print('predictions on ' + str(X_ul.shape[0]) + ' unlabeled data took: ' + str(process_time) + ' seconds')
 
     # calculate metrics
     y_pred = model.predict(X_test)
@@ -128,8 +130,6 @@ def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
     print('accuracy = ' + str(acc))
     print('macro precision = ' + str(prec))
     print('recall score = ' + str(rec))
-    print("\n")
-
 
     return predictions, acc, prec, rec
 
@@ -147,40 +147,43 @@ def find_consensus(preds, training_dat, training_labels, X_ul):
     print('predictions shape: ' + str(p1.shape) + ' ' + str(p2.shape) + ' ' + str(p3.shape))
     print('unlabeled data shape: ' + str(X_ul.shape))
     ensemble = np.stack([p1, p2, p3], axis=0).astype('int16')
+    #print(ensemble.shape)
 
-    consensus = np.mean(ensemble.astype('float'), axis=2)
     X_ul_delete_list = []
-    for i in range(consensus.shape[1]):
+    for i in range(ensemble.shape[1]):
 
-        # if model 0 is the odd-one-out
-        if (consensus[0, i] != consensus[1, i]) and (
-                consensus[0, i] != consensus[2, i]) and (
-                consensus[1, i] == consensus[2, i]):
+        # if model 0 is the odd-one-out add labels to its training set
+        if (ensemble[0, i, :] != ensemble[1, i, :]).all() and (
+                ensemble[0, i, :] != ensemble[2, i, :]).all() and (
+                ensemble[1, i, :] == ensemble[2, i, :]).all():
+            #print(consensus[0,i], consensus[1,i], consensus[2,i])
             X0 = np.vstack([X0, X_ul[i, :]])
             X_ul_delete_list.append(i)
             y0 = np.vstack([y0, ensemble[1, i, :].squeeze()])
 
-        # if model 1 is the odd-one-out
-        elif (consensus[1, i] != consensus[0, i]) and (
-                consensus[1, i] != consensus[2, i]) and (
-                consensus[0, i] == consensus[2, i]):
+        # if model 1 is the odd-one-out add labels to its training set
+        elif (ensemble[0, i, :] != ensemble[1, i, :]).all() and (
+                ensemble[1, i, :] != ensemble[2, i, :]).all() and (
+                ensemble[0, i, :] == ensemble[2, i, :]).all():
             #print(X1.shape, i)
             X1 = np.vstack([X1, X_ul[i, :]])
             X_ul_delete_list.append(i)
             y1 = np.vstack([y1, ensemble[0, i, :].squeeze()])
 
-        # if model 2 is the odd-one-out
-        elif (consensus[2, i] != consensus[0, i]) and (
-                consensus[2, i] != consensus[1, i]) and (
-                consensus[1, i] == consensus[0, i]):
+        # if model 2 is the odd-one-out add labels to its training set
+        elif (ensemble[2, i, :] != ensemble[1, i, :]).all() and (
+                ensemble[2, i, :] != ensemble[0, i, :]).all() and (
+                ensemble[1, i, :] == ensemble[0, i, :]).all():
             #print(X2.shape, i)
             X2 = np.vstack([X2, X_ul[i, :]])
             X_ul_delete_list.append(i)
             y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
 
-        # if all models agree
-        elif (consensus[1, i] == consensus[0, i]) and (
-                consensus[1, i] == consensus[2, i]):
+        # if all models agree, and predictions are not zero, add labels to all training sets
+        elif (ensemble[0, i, :] == ensemble[1, i, :]).all() and (
+                ensemble[0, i, :] == ensemble[2, i, :]).all() and (
+                (np.sum(ensemble[0, i, :]) > 0)):
+
             X0 = np.vstack([X0, X_ul[i, :]])
             X1 = np.vstack([X1, X_ul[i, :]])
             X2 = np.vstack([X2, X_ul[i, :]])
@@ -203,11 +206,15 @@ def find_consensus(preds, training_dat, training_labels, X_ul):
 
 def tri_fit(X,y,X_ul,models):
 
-    num_folds = 1
+    num_folds = 10
 
     X = preprocessing.scale(X)
     X_ul = preprocessing.scale(X_ul)
-    X_ul = X_ul[:5000,:]
+
+    #X_ul = X_ul[:50000,:]
+    X = X[:1000,:]
+    y = y[:1000,:]
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_train.shape))
@@ -217,28 +224,29 @@ def tri_fit(X,y,X_ul,models):
     training_dat = [X_train, X_train, X_train]
     training_labels = [y_train, y_train, y_train]
 
-    all_acc = []
-    all_prec = []
-    all_rec = []
+    model_metrics = [{model:{'acc':[], 'prec':[], 'rec':[], 'train_size':[]}} for model in models.keys()]
 
     for n in range(num_folds):
 
         preds = []
-        for m,model in enumerate(models):
-            X_train = training_dat[m]
-            y_train = training_labels[m]
+        for i,(m,model) in enumerate(models.items()):
+            #print('training ' + str(model))
+            X_train = training_dat[i]
+            y_train = training_labels[i]
             pred, acc, prec, rec = generic_fit(model, X_train, y_train, X_test, y_test, X_ul)
             preds.append(pred)
-            all_acc.append(acc)
-            all_prec.append(prec)
-            all_rec.append(rec)
+            model_metrics[i][m]['acc'].append(acc)
+            model_metrics[i][m]['prec'].append(prec)
+            model_metrics[i][m]['rec'].append(rec)
+            model_metrics[i][m]['train_size'].append(X_train.shape[0])
+
         training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
 
-        pickle_out = open("tri_train_metrics", "wb")
-        pickle.dump([all_acc,all_prec,all_rec], pickle_out)
+        pickle_out = open("tri_train_metrics.pkl", "wb")
+        pickle.dump(model_metrics, pickle_out)
         pickle_out.close()
 
-        pickle_out = open("tri_train_models", "wb")
+        pickle_out = open("tri_train_models.pkl", "wb")
         pickle.dump(models, pickle_out)
         pickle_out.close()
 
