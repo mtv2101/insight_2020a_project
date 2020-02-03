@@ -83,7 +83,7 @@ class regex_matcher(object):
                                                 {"meaning": "[Mm](eaning)"}, #'meaning',
                                                 {"mission": "[Mm](ission)"}, #'mission'],
                                                 ],
-                  'Commmute':                   [{"commute": "[Cc](om.?ute)"}, #'commute',
+                  'Commmute':                   [{"commute": "[Cc](om.?ute.?.?)"}, #'commute', commuters
                                                 {"drive": "[Dd](riv.?.?.?)"}, #'driving',
                                                 {"location": "[Ll](ocation)"} # location'
                                                 ],

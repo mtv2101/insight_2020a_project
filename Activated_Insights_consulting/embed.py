@@ -42,16 +42,19 @@ class embeddings(object):
 
         self.ul_df = self.q1_df.append(self.q2_df, ignore_index=True)
 
-    def load_labeled_data(self):
-        labelled_data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
-        labeled_data = survey_doc(labelled_data_path[0])
-        labeled_data.clean_labelled_data()
+    def load_regex_labeled_data(self):
+        data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
+        labeled_data = survey_doc(data_path[0])
+        labeled_data.clean_regex_labelled_data()
         self.l_df = labeled_data.df
         #self.l_data_q1 = labeled_data.df[labeled_data.df['QID'] == 61]
         #self.l_data_q2 = labeled_data.df[labeled_data.df['QID'] == 62]
 
         self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
 
+    def load_hand_labeled_data(self):
+        data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
+        labeled_data = survey_doc(data_path[0])
 
 
     def embed_data(self):
@@ -101,6 +104,7 @@ class embeddings(object):
                                            stop_words='english')
         tfidf = tfidf_vectorizer.fit_transform(data)
 
+
         # format output from sparse matrix to something I can actually use
         tfidf_mat = tfidf.toarray()
 
@@ -109,9 +113,6 @@ class embeddings(object):
 
     def bert(self, df):
 
-        # model = 'en_core_web_sm'  # for testing on laptop
-        # model = 'en_core_web_lg'
-        # model = 'en_vectors_web_lg' # many more words
         model = 'en_trf_bertbaseuncased_lg'
         nlp = spacy.load(model)
 

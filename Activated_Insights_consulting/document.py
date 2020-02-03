@@ -49,7 +49,23 @@ class survey_doc(object):
         self.df = self.df[self.df['text'].apply(lambda x: self.filter_str_length(x))] # cut out strings less than 2 characters long
 
 
-    def clean_labelled_data(self):
+    def clean_hand_labelled_data(self):
+        self.df = pd.read_csv(self.data_path, converters={"JK label": lambda x: x.strip("[]").split(", ")})
+        self.df = self.df.dropna(how='any')
+        self.df = self.df.rename(columns={'Comment': 'text'})
+        self.df = self.df[['QID', 'text', 'JK label', 'JK sentiment']]
+        self.df = self.df[self.df['text'].apply(lambda x: isinstance(x, str))]  # cut out non-string entries
+        self.df = self.df[self.df['text'].apply(lambda x: self.filter_str_length(x))]
+        self.df = self.df[self.df['JK label'] != 'No answer/Nothing'] # We don't classify
+        self.df = self.df[self.df['JK label'] != 'Other']
+        onehot = pd.get_dummies(self.df['JK label'].apply(pd.Series).stack()).sum(level=0)
+        self.df = pd.concat([self.df, onehot], axis=1)
+        self.df = self.df.drop(['No answer/Nothing', 'Other'], axis=1)
+
+        pd.to_pickle(self.df, 'hand_scored_df.pkl')
+
+
+    def clean_regex_labelled_data(self):
         self.df = self.df.dropna(how='any')
 
         # merge rows by comment index, one-hot encode classes
@@ -58,6 +74,7 @@ class survey_doc(object):
         idx = []
         text = []
         for i,id in enumerate(com_ids):
+            # for each regex match, often more than one match per comment
             idx.append(id)
             com_df = self.df[self.df['comment_idx'] == id]
             com_labs = com_df.topic.unique()
@@ -73,10 +90,6 @@ class survey_doc(object):
         onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
 
         self.onehot = pd.concat([multilabel_df, onehot], axis=1)
-
-        #self.df = self.df.rename(columns={'Comment': 'text'})
-        #self.df = self.df[['QID', 'text', 'JK label', 'JK sentiment']]
-        #self.df = self.df[self.df['JK label'] != 'No answer/Nothing']
 
 
     def init_model(self):

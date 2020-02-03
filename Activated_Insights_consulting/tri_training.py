@@ -33,7 +33,7 @@ from sklearn.decomposition import PCA
 
 def main():
 
-    X, y, X_ul, categories = load_data()
+    X, y, X_ul, categories = load_regex_data()
 
     X_pca, X_ul_pca = pca_reduce(X, X_ul)
 
@@ -43,7 +43,7 @@ def main():
 
 
 
-def load_data():
+def load_regex_data():
 
     y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl'
     ydf = pd.read_pickle(y_path)
@@ -60,6 +60,27 @@ def load_data():
     X_ul = X_mat[ul_idx]
 
     return X, y, X_ul, categories
+
+
+def load_hand_labelled_data():
+
+    #y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl'
+    # labels are encoded as a string, so here we seperate them as a list
+    ydf = pd.read_pickle(y_path)
+    categories = ydf.keys()[3:]
+    ydf_onehot = ydf[categories]
+    ydf_onehot.keys()
+    y = ydf_onehot.to_numpy()
+
+    #x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/tfidf_embeddings.npy'
+    X_mat = np.load(x_path)
+    # get X vectors that represent y data
+    X = X_mat[ydf['comment_idx']]
+    ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
+    X_ul = X_mat[ul_idx]
+
+    return X, y, X_ul, categories
+
 
 def setup_pipes():
 
@@ -134,7 +155,7 @@ def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
     return predictions, acc, prec, rec
 
 
-def find_consensus(preds, training_dat, training_labels, X_ul):
+def find_consensus(preds, training_dat, training_labels, X_ul, training_method='disagreement'):
 
     X0, X1, X2 = training_dat
     y0, y1, y2 = training_labels
@@ -144,59 +165,56 @@ def find_consensus(preds, training_dat, training_labels, X_ul):
     assert (X2.shape[0] == y2.shape[0])
 
     p1, p2, p3 = preds
-    print('predictions shape: ' + str(p1.shape) + ' ' + str(p2.shape) + ' ' + str(p3.shape))
     print('unlabeled data shape: ' + str(X_ul.shape))
     ensemble = np.stack([p1, p2, p3], axis=0).astype('int16')
     #print(ensemble.shape)
 
     X_ul_delete_list = []
     for i in range(ensemble.shape[1]):
+        if training_method == 'disagreement':
+            # if model 0 is the odd-one-out add labels to its training set
+            #print(ensemble[:,i,:].shape)
+            #print(ensemble[0,i,:], ensemble[1,i,:], ensemble[2,i,:])
+            if (ensemble[0, i, :] != ensemble[1, i, :]).any() and (
+                    ensemble[0, i, :] != ensemble[2, i, :]).any() and (
+                    ensemble[1, i, :] == ensemble[2, i, :]).all():
+                #print(ensemble[0, i, :], ensemble[1, i, :])
+                X0 = np.vstack([X0, X_ul[i, :]])
+                X_ul_delete_list.append(i)
+                y0 = np.vstack([y0, ensemble[1, i, :].squeeze()]) # append a correct label
 
-        # if model 0 is the odd-one-out add labels to its training set
-        if (ensemble[0, i, :] != ensemble[1, i, :]).all() and (
-                ensemble[0, i, :] != ensemble[2, i, :]).all() and (
-                ensemble[1, i, :] == ensemble[2, i, :]).all():
-            #print(consensus[0,i], consensus[1,i], consensus[2,i])
-            X0 = np.vstack([X0, X_ul[i, :]])
-            X_ul_delete_list.append(i)
-            y0 = np.vstack([y0, ensemble[1, i, :].squeeze()])
+            # if model 1 is the odd-one-out add labels to its training set
+            elif (ensemble[0, i, :] != ensemble[1, i, :]).any() and (
+                    ensemble[1, i, :] != ensemble[2, i, :]).any() and (
+                    ensemble[0, i, :] == ensemble[2, i, :]).all():
+                #print(ensemble[0, i, :], ensemble[1, i, :])
+                X1 = np.vstack([X1, X_ul[i, :]])
+                X_ul_delete_list.append(i)
+                y1 = np.vstack([y1, ensemble[0, i, :].squeeze()])
 
-        # if model 1 is the odd-one-out add labels to its training set
-        elif (ensemble[0, i, :] != ensemble[1, i, :]).all() and (
-                ensemble[1, i, :] != ensemble[2, i, :]).all() and (
-                ensemble[0, i, :] == ensemble[2, i, :]).all():
-            #print(X1.shape, i)
-            X1 = np.vstack([X1, X_ul[i, :]])
-            X_ul_delete_list.append(i)
-            y1 = np.vstack([y1, ensemble[0, i, :].squeeze()])
+            # if model 2 is the odd-one-out add labels to its training set
+            elif (ensemble[2, i, :] != ensemble[1, i, :]).any() and (
+                    ensemble[2, i, :] != ensemble[0, i, :]).any() and (
+                    ensemble[1, i, :] == ensemble[0, i, :]).all():
+                #print(ensemble[2, i, :], ensemble[1, i, :])
+                X2 = np.vstack([X2, X_ul[i, :]])
+                X_ul_delete_list.append(i)
+                y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
 
-        # if model 2 is the odd-one-out add labels to its training set
-        elif (ensemble[2, i, :] != ensemble[1, i, :]).all() and (
-                ensemble[2, i, :] != ensemble[0, i, :]).all() and (
-                ensemble[1, i, :] == ensemble[0, i, :]).all():
-            #print(X2.shape, i)
-            X2 = np.vstack([X2, X_ul[i, :]])
-            X_ul_delete_list.append(i)
-            y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
+        elif training_method == 'classic':
+            # if all models agree, and predictions are not zero, add label to all training sets
+            if (ensemble[0, i, :] == ensemble[1, i, :]).all() and (
+                    ensemble[0, i, :] == ensemble[2, i, :]).all() and (
+                    (ensemble[0, i, :]).any() == 1):
+                X0 = np.vstack([X0, X_ul[i, :]])
+                X1 = np.vstack([X1, X_ul[i, :]])
+                X2 = np.vstack([X2, X_ul[i, :]])
+                X_ul_delete_list.append(i)
+                y0 = np.vstack([y0, ensemble[1, i, :].squeeze()])
+                y1 = np.vstack([y1, ensemble[1, i, :].squeeze()])
+                y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
 
-        # if all models agree, and predictions are not zero, add labels to all training sets
-        elif (ensemble[0, i, :] == ensemble[1, i, :]).all() and (
-                ensemble[0, i, :] == ensemble[2, i, :]).all() and (
-                (np.sum(ensemble[0, i, :]) > 0)):
-
-            X0 = np.vstack([X0, X_ul[i, :]])
-            X1 = np.vstack([X1, X_ul[i, :]])
-            X2 = np.vstack([X2, X_ul[i, :]])
-            X_ul_delete_list.append(i)
-            y0 = np.vstack([y0, ensemble[1, i, :].squeeze()])
-            y1 = np.vstack([y1, ensemble[1, i, :].squeeze()])
-            y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
-
-    print(X0.shape, X_ul.shape)
-    #X_ul.delete(X_ul_delete_list, axis=0)
     X_ul = np.delete(X_ul, X_ul_delete_list, axis=0)
-    print(X0.shape, X1.shape, X2.shape)
-    print(y0.shape, y1.shape, y2.shape)
 
     training_dat = [X0, X1, X2]
     training_labels = [y0, y1, y2]
@@ -204,7 +222,7 @@ def find_consensus(preds, training_dat, training_labels, X_ul):
     return training_dat, training_labels, X_ul
 
 
-def tri_fit(X,y,X_ul,models):
+def tri_fit(X,y,X_ul,models, save_output=True):
 
     num_folds = 10
 
@@ -212,8 +230,8 @@ def tri_fit(X,y,X_ul,models):
     X_ul = preprocessing.scale(X_ul)
 
     #X_ul = X_ul[:50000,:]
-    X = X[:1000,:]
-    y = y[:1000,:]
+    X = X[:500,:]
+    y = y[:500,:]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
     print('training data size = ' + str(X_train.shape))
@@ -242,13 +260,14 @@ def tri_fit(X,y,X_ul,models):
 
         training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
 
-        pickle_out = open("tri_train_metrics.pkl", "wb")
-        pickle.dump(model_metrics, pickle_out)
-        pickle_out.close()
+        if save_output:
+            pickle_out = open("tri_train_metrics_disagree.pkl", "wb")
+            pickle.dump(model_metrics, pickle_out)
+            pickle_out.close()
 
-        pickle_out = open("tri_train_models.pkl", "wb")
-        pickle.dump(models, pickle_out)
-        pickle_out.close()
+            pickle_out = open("tri_train_models_disagree.pkl", "wb")
+            pickle.dump(models, pickle_out)
+            pickle_out.close()
 
 
 if __name__ == "__main__":
