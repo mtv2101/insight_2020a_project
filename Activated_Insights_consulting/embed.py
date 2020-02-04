@@ -125,7 +125,8 @@ class embeddings(object):
         #nlp = spacy.load(model)
 
         nlp = TransformersLanguage(trf_name=model, meta={"lang": "en"})
-        nlp.add_pipe(nlp.create_pipe("sentencizer"), first=True)
+        sentencizer = nlp.create_pipe("sentencizer")
+        nlp.add_pipe(sentencizer, first=True)
         nlp.add_pipe(TransformersWordPiecer.from_pretrained(nlp.vocab, model))
         nlp.add_pipe(TransformersTok2Vec.from_pretrained(nlp.vocab, model))
 
@@ -136,9 +137,10 @@ class embeddings(object):
             doc = nlp(comment)
             #tensor = np.array(doc._.trf_last_hidden_state)
             tensor = doc._.trf_last_hidden_state
-            print(tensor.shape)
-            tensors.append(tensor)
+            #print(tensor.shape)
+            tensors.append(tensor.sum(axis=0))
+        tensors = np.array(tensors)
 
         np.save('regex_labelled_bert_embeddings.npy', tensors)
 
-        return vectors
+        return tensors
