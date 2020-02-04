@@ -30,8 +30,8 @@ class embeddings(object):
 
         #paths = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2017 to mid 2018 comments.csv',
         #         '~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2018 to mid 2019 comments.csv']
-        paths = ['2017 to mid 2018 comments.csv',
-                 '2018 to mid 2019 comments.csv']
+        paths = ['AI_data/2017_2018_comments.csv',
+                 'AI_data/2018_2019_comments.csv']
 
         self.q1_df = pd.DataFrame()
         self.q2_df = pd.DataFrame()
@@ -49,7 +49,7 @@ class embeddings(object):
 
     def load_regex_labeled_data(self):
         #data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
-        data_path = ['regex_scored_df.pkl']
+        data_path = ['AI_data/regex_scored_df.pkl']
         labeled_data = survey_doc(data_path[0])
         labeled_data.clean_regex_labelled_data()
         self.l_df = labeled_data.df
@@ -62,7 +62,7 @@ class embeddings(object):
 
     def load_hand_labeled_data(self):
         #data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_scored_df.pkl']
-        data_path  =['hand_scored_df.pkl']
+        data_path  =['AI_data/hand_scored_df.pkl']
         self.l_df = pd.read_pickle(data_path[0])
         return self.l_df
 
