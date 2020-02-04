@@ -17,18 +17,21 @@ from document import survey_doc
 
 class embeddings(object):
 
-    def __init__(self, question = 'both', model = 'tfidf'):
+    def __init__(self, question = 'both', model = 'bert'):
 
         self.question = question
         self.model = model
-        self.load_unlabeled_data()
-        #self.mat = self.embed_data()
+        #self.load_unlabeled_data()
+        self.data = self.load_hand_labeled_data()
+        self.embed_data()
 
 
     def load_unlabeled_data(self):
 
-        paths = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2017 to mid 2018 comments.csv',
-                 '~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2018 to mid 2019 comments.csv']
+        #paths = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2017 to mid 2018 comments.csv',
+        #         '~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/AI_survey_data/2018 to mid 2019 comments.csv']
+        paths = ['2017 to mid 2018 comments.csv',
+                 '2018 to mid 2019 comments.csv']
 
         self.q1_df = pd.DataFrame()
         self.q2_df = pd.DataFrame()
@@ -42,19 +45,26 @@ class embeddings(object):
 
         self.ul_df = self.q1_df.append(self.q2_df, ignore_index=True)
 
+        return self.ul_df
+
     def load_regex_labeled_data(self):
-        data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
+        #data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
+        data_path = ['regex_scored_df.pkl']
         labeled_data = survey_doc(data_path[0])
         labeled_data.clean_regex_labelled_data()
         self.l_df = labeled_data.df
         #self.l_data_q1 = labeled_data.df[labeled_data.df['QID'] == 61]
         #self.l_data_q2 = labeled_data.df[labeled_data.df['QID'] == 62]
 
-        self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
+        #self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
+
+        return self.l_df
 
     def load_hand_labeled_data(self):
-        data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl']
-        labeled_data = survey_doc(data_path[0])
+        #data_path = ['~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_scored_df.pkl']
+        data_path  =['hand_scored_df.pkl']
+        self.l_df = pd.read_pickle(data_path[0])
+        return self.l_df
 
 
     def embed_data(self):
@@ -62,11 +72,11 @@ class embeddings(object):
         assert self.model in models
 
         if self.model == 'tfidf_by_class':
-            return self.tfidf_by_class(self.ul_df)
+            return self.tfidf_by_class(self.data)
         if self.model == 'tfidf':
-            return self.tfidf(self.ul_df)
+            return self.tfidf(self.data)
         if self.model == 'bert':
-            self.l_bert = self.bert(self.l_df)
+            self.l_bert = self.bert(self.data)
 
 
     def tfidf_by_class(self, df):
@@ -97,8 +107,8 @@ class embeddings(object):
         '''
         get tfidf vectors on labeled and unlabelled data
         '''
-        data = [sent for sent in df.text]
-        n_features = 500
+        data = [comment for comment in df.text]
+        n_features = 200
         tfidf_vectorizer = TfidfVectorizer(max_df=0.95, min_df=2,
                                            max_features=n_features,
                                            stop_words='english')
