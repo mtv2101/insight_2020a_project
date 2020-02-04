@@ -129,9 +129,15 @@ class embeddings(object):
         nlp.add_pipe(TransformersWordPiecer.from_pretrained(nlp.vocab, model))
         nlp.add_pipe(TransformersTok2Vec.from_pretrained(nlp.vocab, model))
 
-        data = [sent for sent in df.text]
-        docs = [nlp(d) for d in data]
-        tensors = np.array(docs._.trf_last_hidden_state)
+        #data = [sent for sent in df.text]
+        #docs = [nlp(d) for d in data]
+        tensors = []
+        for comment in df.text:
+            doc = nlp(comment)
+            #tensor = np.array(doc._.trf_last_hidden_state)
+            tensor = doc._.trf_last_hidden_state
+            print(tensor.shape)
+            tensors.append(tensor)
 
         np.save('regex_labelled_bert_embeddings.npy', tensors)
 
