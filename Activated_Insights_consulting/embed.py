@@ -121,7 +121,7 @@ class embeddings(object):
 
     def bert(self, df):
 
-        model = 'en_trf_bertbaseuncased_lg'
+        model = 'bert-base-uncased'
         #nlp = spacy.load(model)
 
         nlp = TransformersLanguage(trf_name=model, meta={"lang": "en"})
