@@ -20,7 +20,7 @@ class embeddings(object):
         self.question = question
         self.model = model
         #self.load_unlabeled_data()
-        self.data = self.load_hand_labeled_data()
+        self.data = self.load_unlabeled_data()
         self.embed_data()
 
 
