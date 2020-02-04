@@ -2,12 +2,10 @@
 import numpy as np
 import pandas as pd
 import spacy
-from spacy.lang.en import English
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn import metrics
+
+from spacy_transformers import TransformersLanguage, TransformersWordPiecer, TransformersTok2Vec
 
 from document import survey_doc
 
@@ -124,12 +122,17 @@ class embeddings(object):
     def bert(self, df):
 
         model = 'en_trf_bertbaseuncased_lg'
-        nlp = spacy.load(model)
+        #nlp = spacy.load(model)
+
+        nlp = TransformersLanguage(trf_name=model, meta={"lang": "en"})
+        nlp.add_pipe(nlp.create_pipe("sentencizer"), first=True)
+        nlp.add_pipe(TransformersWordPiecer.from_pretrained(nlp.vocab, model))
+        nlp.add_pipe(TransformersTok2Vec.from_pretrained(nlp.vocab, model))
 
         data = [sent for sent in df.text]
-        vectors = [nlp(d) for d in data]
-        vectors = np.array(vectors)
+        docs = [nlp(d) for d in data]
+        tensors = np.array(docs._.trf_last_hidden_state)
 
-        np.save('regex_labelled_bert_embeddings.npy', vectors)
+        np.save('regex_labelled_bert_embeddings.npy', tensors)
 
         return vectors
