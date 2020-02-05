@@ -28,11 +28,13 @@ def main():
 
     X_test, y_test = load_hand_labelled_data()
 
+    print(X_train.shape, X_test.shape, X_ul.shape)
     X_train, X_test, X_ul = pca_reduce(X_train, X_test, X_ul)
+    print(X_train.shape, X_test.shape, X_ul.shape)
 
     models = setup_pipes()
 
-    tri_fit(X_train, X_test, y_train, y_test, X_ul, models)
+    #tri_fit(X_train, X_test, y_train, y_test, X_ul, models)
 
 
 
@@ -201,8 +203,8 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
         elif training_method == 'classic':
             # if all models agree, and predictions are not zero, add label to all training sets
             if (ensemble[0, i, :] == ensemble[1, i, :]).all() and (
-                    ensemble[0, i, :] == ensemble[2, i, :]).all() and (
-                    (ensemble[0, i, :]).any() == 1):
+                    ensemble[0, i, :] == ensemble[2, i, :]).all():# and (
+                    #(ensemble[0, i, :]).any() == 1):
                 X0 = np.vstack([X0, X_ul[i, :]])
                 X1 = np.vstack([X1, X_ul[i, :]])
                 X2 = np.vstack([X2, X_ul[i, :]])
