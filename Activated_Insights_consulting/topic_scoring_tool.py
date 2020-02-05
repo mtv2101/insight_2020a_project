@@ -11,7 +11,7 @@ from embed import embeddings
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=50000):
+def regex_find_topics(df, nlp, num_matches=-1):
     start_time = timeit.default_timer()
 
     match = regex_matcher()
@@ -42,23 +42,44 @@ def regex_find_topics(df, nlp, num_matches=50000):
 
         sub_df = df[df.index.isin(com_ids)]
 
-        out_df = pd.concat([multilabel_df, onehot], axis=1)
+        out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1)
         print(out_df.keys())
         #print(out_df.QID)
 
     else:
-        # BROKEN!!!
-        for t, text in enumerate(df['text']):
+        for t in range(len(df)):
+            text = df['text'].iloc[t]
             doc = nlp(text)
             out_df = match.match_topics(t, doc)
             match_df = match_df.append(out_df)
+
+        com_ids = match_df.comment_idx.unique()
+        labels = []
+        idx = []
+        for id in com_ids:
+            idx.append(int(id))
+            com_df = match_df[match_df['comment_idx'] == id]
+            com_labs = com_df.topic.unique()
+            labels.append(com_labs)
+
+        multilabel_df = pd.DataFrame()
+        multilabel_df['comment_idx'] = idx
+        multilabel_df['labels'] = labels
+
+        onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
+
+        sub_df = df[df.index.isin(com_ids)]
+
+        out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1)
+        print(out_df.keys())
+        # print(out_df.QID)
 
     out_df.reset_index(inplace=True)
 
     process_time = timeit.default_timer() - start_time
     print(str(len(df)) + ' submissions, query took ' + str(process_time) + ' seconds')
 
-    pd.to_pickle(out_df, 'regex_scored_df.pkl')
+    pd.to_pickle(out_df, 'regex_scored_all_df.pkl')
 
     return out_df
 
