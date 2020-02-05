@@ -28,9 +28,9 @@ def main():
 
     X_test, y_test = load_hand_labelled_data()
 
-    print(X_train.shape, X_test.shape, X_ul.shape)
+    #print(X_train.shape, X_test.shape, X_ul.shape)
     X_train, X_test, X_ul = pca_reduce(X_train, X_test, X_ul)
-    print(X_train.shape, X_test.shape, X_ul.shape)
+    #print(X_train.shape, X_test.shape, X_ul.shape)
 
     models = setup_pipes()
 
