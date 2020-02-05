@@ -40,7 +40,8 @@ class embeddings(object):
         self.question = question
         self.model = model
         #self.load_unlabeled_data()
-        self.data = self.load_unlabeled_data()
+        #self.data = self.load_unlabeled_data()
+        self.data = self.load_regex_labeled_data()
         self.embed_data()
 
 
@@ -162,6 +163,6 @@ class embeddings(object):
             tensors.append(tensor.sum(axis=0))
         tensors = np.array(tensors)
 
-        np.save('hand_labelled_bert_embeddings.npy', tensors)
+        np.save('regex_labelled_bert_embeddings.npy', tensors)
 
         return tensors
