@@ -23,8 +23,8 @@ from sklearn.decomposition import PCA
 
 def main():
 
-    X_train, y_train = load_regex_data()
-    X_ul = get_unlabeled_data()
+    X_train, y_train, X_ul = load_regex_data()
+
     X_test, y_test = load_hand_labelled_data()
 
     X_train, X_test, X_ul = pca_reduce(X_train, X_test, X_ul)
@@ -37,7 +37,7 @@ def main():
 
 def load_regex_data():
 
-    y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl'
+    y_path = 'regex_scored_df.pkl'
     ydf = pd.read_pickle(y_path)
     categories = ydf.keys()[3:]
     ydf_onehot = ydf[categories]
@@ -48,20 +48,16 @@ def load_regex_data():
     X_mat = np.load(x_path)
     # get X vectors that represent y data
     X = X_mat[ydf['comment_idx']]
-    #ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
-    #X_ul = X_mat[ul_idx]
+    ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
+    X_ul = X_mat[ul_idx]
 
-    return X, y
+    return X, y, X_ul
 
 
 def get_unlabeled_data():
 
     x_path = 'unlabelled_bert_embeddings.npy'
     X_mat = np.load(x_path)
-    # get X vectors that represent y data
-    #X = X_mat[ydf['comment_idx']]
-    #ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
-    #X_ul = X_mat[ul_idx]
 
     return X_mat
 
@@ -80,10 +76,6 @@ def load_hand_labelled_data():
     #x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/tfidf_embeddings.npy'
     x_path = 'hand_labelled_bert_embeddings.npy'
     X_mat = np.load(x_path)
-    # get X vectors that represent y data
-    #X = X_mat[ydf['comment_idx']]
-    #ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
-    #X_ul = X_mat#[ul_idx]
 
     return X_mat, y
 
