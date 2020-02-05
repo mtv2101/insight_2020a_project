@@ -39,10 +39,6 @@ class embeddings(object):
 
         self.question = question
         self.model = model
-        #self.load_unlabeled_data()
-        #self.data = self.load_unlabeled_data()
-        self.data = self.load_regex_labeled_data()
-        self.embed_data()
 
 
     def load_unlabeled_data(self):
@@ -89,6 +85,10 @@ class embeddings(object):
     def embed_data(self):
         models = ['tfidf', 'tfidf_by_class', 'bert']
         assert self.model in models
+
+        #self.load_unlabeled_data()
+        #self.data = self.load_unlabeled_data()
+        self.data = self.load_regex_labeled_data()
 
         if self.model == 'tfidf_by_class':
             return self.tfidf_by_class(self.data)
