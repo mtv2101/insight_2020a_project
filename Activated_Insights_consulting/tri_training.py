@@ -152,7 +152,7 @@ def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
     return predictions, acc, prec, rec
 
 
-def find_consensus(preds, training_dat, training_labels, X_ul, training_method='disagreement'):
+def find_consensus(preds, training_dat, training_labels, X_ul, training_method='classic'):
 
     X0, X1, X2 = training_dat
     y0, y1, y2 = training_labels
