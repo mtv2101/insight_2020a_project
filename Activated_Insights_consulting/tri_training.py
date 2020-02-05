@@ -2,26 +2,16 @@ import numpy as np
 import pandas as pd
 import pickle
 
-import os
 import timeit
-import matplotlib.pyplot as plt
-from random import choices
-from numpy.random import default_rng
 
 from sklearn import preprocessing
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_predict
-from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.model_selection import GroupKFold, StratifiedKFold
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn import metrics
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import accuracy_score
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
