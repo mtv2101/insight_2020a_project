@@ -88,7 +88,8 @@ class embeddings(object):
 
         #self.load_unlabeled_data()
         #self.data = self.load_unlabeled_data()
-        self.data = self.load_regex_labeled_data()
+        #self.data = self.load_regex_labeled_data()
+        self.data = self.load_hand_labeled_data()
 
         if self.model == 'tfidf_by_class':
             return self.tfidf_by_class(self.data)
