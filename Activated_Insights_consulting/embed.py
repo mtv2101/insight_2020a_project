@@ -164,6 +164,6 @@ class embeddings(object):
             tensors.append(tensor.sum(axis=0))
         tensors = np.array(tensors)
 
-        np.save('regex_labelled_bert_embeddings.npy', tensors)
+        np.save('hand_labelled_bert_embeddings.npy', tensors)
 
         return tensors
