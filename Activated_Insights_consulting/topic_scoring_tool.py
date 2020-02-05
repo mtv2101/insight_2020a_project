@@ -42,7 +42,7 @@ def regex_find_topics(df, nlp, num_matches=-1):
 
         sub_df = df[df.index.isin(com_ids)]
 
-        out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1)
+        out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=True)
         print(out_df.keys())
         #print(out_df.QID)
 
@@ -69,8 +69,9 @@ def regex_find_topics(df, nlp, num_matches=-1):
         onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
 
         sub_df = df[df.index.isin(com_ids)]
+        sub_df = sub_df['text']
 
-        out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1)
+        out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=True)
         print(out_df.keys())
         # print(out_df.QID)
 
