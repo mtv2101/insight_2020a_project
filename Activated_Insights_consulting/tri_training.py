@@ -241,9 +241,11 @@ def tri_fit(X,y,X_ul,models, save_output=False):
     y_train = y
     X_test = X
     y_test = y
+    print(y_test)
     #X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
     print('training data size = ' + str(X_train.shape))
-    print('testing data size = ' + str(X_train.shape))
+    print('testing data size = ' + str(X_test.shape))
+    print('target shape = ' + str(y_train.shape))
     print('unlabeled data size = ' + str(X_ul.shape))
 
     # initialize three copies of training data before accumulating model-specific examples
