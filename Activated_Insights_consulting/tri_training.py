@@ -203,8 +203,8 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
         elif training_method == 'classic':
             # if all models agree, and predictions are not zero, add label to all training sets
             if (ensemble[0, i, :] == ensemble[1, i, :]).all() and (
-                    ensemble[0, i, :] == ensemble[2, i, :]).all():# and (
-                    #(ensemble[0, i, :]).any() == 1):
+                    ensemble[0, i, :] == ensemble[2, i, :]).all() and (
+                    (ensemble[0, i, :]).any() == 1):
                 X0 = np.vstack([X0, X_ul[i, :]])
                 X1 = np.vstack([X1, X_ul[i, :]])
                 X2 = np.vstack([X2, X_ul[i, :]])
@@ -223,7 +223,7 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
 
 def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=False):
 
-    num_folds = 10
+    num_folds = 15
 
     X_train = preprocessing.scale(X_train)
     X_test = preprocessing.scale(X_test)
@@ -231,7 +231,7 @@ def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=False):
 
     print(y_test)
     # optionally overwrite test data provided externally and test internally on a split
-    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, random_state=42,test_size=0.2)
+    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, random_state=42,test_size=0.5)
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_test.shape))
     print('target shape = ' + str(y_train.shape))
