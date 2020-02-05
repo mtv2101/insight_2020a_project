@@ -16,8 +16,6 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 
-from embed import embeddings
-
 
 
 ############################################3
@@ -25,15 +23,15 @@ from embed import embeddings
 
 def main():
 
-    #X, y, X_ul, categories = load_regex_data()
+    X_train, y_train = load_regex_data()
     X_ul = get_unlabeled_data()
-    X, y = load_hand_labelled_data()
+    X_test, y_test = load_hand_labelled_data()
 
-    X_pca, X_ul_pca = pca_reduce(X, X_ul)
+    X_train, X_test, X_ul = pca_reduce(X_train, X_test, X_ul)
 
     models = setup_pipes()
 
-    tri_fit(X_pca,y,X_ul_pca,models)
+    tri_fit(X_train, X_test, y_train, y_test, X_ul, models)
 
 
 
@@ -46,14 +44,14 @@ def load_regex_data():
     ydf_onehot.keys()
     y = ydf_onehot.to_numpy()
 
-    x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/tfidf_embeddings.npy'
+    x_path = 'unlabelled_bert_embeddings.npy'
     X_mat = np.load(x_path)
     # get X vectors that represent y data
     X = X_mat[ydf['comment_idx']]
-    ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
-    X_ul = X_mat[ul_idx]
+    #ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
+    #X_ul = X_mat[ul_idx]
 
-    return X, y, X_ul, categories
+    return X, y
 
 
 def get_unlabeled_data():
@@ -124,19 +122,17 @@ def setup_pipes():
     return models
 
 
-def pca_reduce(X, X_ul):
+def pca_reduce(X_train, X_test, X_ul):
 
-    X_merge = np.concatenate([X, X_ul], axis=0)
+    X_merge = np.concatenate([X_train, X_test, X_ul], axis=0)
     pca = PCA(n_components=20)
     X_xform = pca.fit_transform(X_merge)
-    #X_pca = pca.components_
-    #plt.plot(pca.explained_variance_)
-    #plt.show()
 
-    X_pca = X_xform[:X.shape[0],:]
-    X_ul_pca = X_xform[X.shape[0]:,:]
+    X_train = X_xform[:X_train.shape[0],:]
+    X_test = X_xform[X_train.shape[0]:X_train.shape[0]+X_test.shape[0],:]
+    X_ul = X_xform[X_train.shape[0]+X_test.shape[0]:,:]
 
-    return X_pca, X_ul_pca
+    return X_train, X_test, X_ul
 
 
 def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
@@ -230,17 +226,14 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
     return training_dat, training_labels, X_ul
 
 
-def tri_fit(X,y,X_ul,models, save_output=False):
+def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=False):
 
     num_folds = 10
 
-    X = preprocessing.scale(X)
+    X_train = preprocessing.scale(X_train)
+    X_test = preprocessing.scale(X_test)
     X_ul = preprocessing.scale(X_ul)
 
-    X_train = X
-    y_train = y
-    X_test = X
-    y_test = y
     print(y_test)
     #X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
     print('training data size = ' + str(X_train.shape))
