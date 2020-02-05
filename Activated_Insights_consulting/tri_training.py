@@ -221,7 +221,7 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
     return training_dat, training_labels, X_ul
 
 
-def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=False):
+def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=True):
 
     num_folds = 15
 
