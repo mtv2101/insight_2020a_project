@@ -74,7 +74,7 @@ def load_hand_labelled_data():
     y_path = 'hand_scored_df.pkl'
     # labels are encoded as a string, so here we seperate them as a list
     ydf = pd.read_pickle(y_path)
-    categories = ydf.keys()[3:]
+    categories = ydf.keys()[4:]
     ydf_onehot = ydf[categories]
     ydf_onehot.keys()
     y = ydf_onehot.to_numpy()
