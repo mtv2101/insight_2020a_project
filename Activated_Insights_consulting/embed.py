@@ -12,6 +12,26 @@ from document import survey_doc
 
 ##############################
 
+'''
+embed.py takes .csv tables of comment text, 
+or pickled files containing a pandas dataframe formatted 
+using doucment.py.  
+
+It embeds the text using tf/idf, or BERT
+where each comment is treated as an independent document. 
+
+It outputs a numpy array of rows(comments) by cols(vector features)
+
+major dependencies are the spacy transformers library:
+https://github.com/explosion/spacy-transformers
+
+scikit-learn:
+https://scikit-learn.org/stable/
+
+requires python>3.6
+
+'''
+
 
 class embeddings(object):
 
@@ -133,11 +153,12 @@ class embeddings(object):
         #data = [sent for sent in df.text]
         #docs = [nlp(d) for d in data]
         tensors = []
+        print(len(df))
         for comment in df.text:
             doc = nlp(comment)
             #tensor = np.array(doc._.trf_last_hidden_state)
             tensor = doc._.trf_last_hidden_state
-            #print(tensor.shape)
+            print(tensor.shape)
             tensors.append(tensor.sum(axis=0))
         tensors = np.array(tensors)
 
