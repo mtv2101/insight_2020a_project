@@ -155,7 +155,7 @@ class embeddings(object):
         #data = [sent for sent in df.text]
         #docs = [nlp(d) for d in data]
         tensors = []
-        print(len(df))
+        #print(len(df))
         for comment in df.text:
             doc = nlp(comment)
             #tensor = np.array(doc._.trf_last_hidden_state)

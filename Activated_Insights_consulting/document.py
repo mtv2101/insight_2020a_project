@@ -53,7 +53,7 @@ class survey_doc(object):
         self.df = pd.read_csv(self.data_path, converters={"JK label": lambda x: x.strip("[]").split(", ")})
         self.df = self.df.dropna(how='any')
         self.df = self.df.rename(columns={'Comment': 'text'})
-        self.df = self.df[['QID', 'text', 'JK label', 'JK sentiment']]
+        self.df = self.df[['Comment ID', 'QID', 'text', 'JK label', 'JK sentiment']]
         self.df = self.df[self.df['text'].apply(lambda x: isinstance(x, str))]  # cut out non-string entries
         self.df = self.df[self.df['text'].apply(lambda x: self.filter_str_length(x))]
         self.df = self.df[self.df['JK label'] != 'No answer/Nothing'] # We don't classify

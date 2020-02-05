@@ -26,6 +26,8 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 
+from embed import embeddings
+
 
 
 ############################################3
@@ -33,7 +35,9 @@ from sklearn.decomposition import PCA
 
 def main():
 
-    X, y, X_ul, categories = load_regex_data()
+    #X, y, X_ul, categories = load_regex_data()
+    X_ul = get_unlabeled_data()
+    X, y = load_hand_labelled_data()
 
     X_pca, X_ul_pca = pca_reduce(X, X_ul)
 
@@ -62,9 +66,22 @@ def load_regex_data():
     return X, y, X_ul, categories
 
 
+def get_unlabeled_data():
+
+    x_path = 'unlabelled_bert_embeddings.npy'
+    X_mat = np.load(x_path)
+    # get X vectors that represent y data
+    #X = X_mat[ydf['comment_idx']]
+    #ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
+    #X_ul = X_mat[ul_idx]
+
+    return X_mat
+
+
 def load_hand_labelled_data():
 
     #y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl'
+    y_path = 'hand_scored_df.pkl'
     # labels are encoded as a string, so here we seperate them as a list
     ydf = pd.read_pickle(y_path)
     categories = ydf.keys()[3:]
@@ -73,13 +90,14 @@ def load_hand_labelled_data():
     y = ydf_onehot.to_numpy()
 
     #x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/tfidf_embeddings.npy'
+    x_path = 'hand_labelled_bert_embeddings.npy'
     X_mat = np.load(x_path)
     # get X vectors that represent y data
-    X = X_mat[ydf['comment_idx']]
-    ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
-    X_ul = X_mat[ul_idx]
+    #X = X_mat[ydf['comment_idx']]
+    #ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
+    #X_ul = X_mat#[ul_idx]
 
-    return X, y, X_ul, categories
+    return X_mat, y
 
 
 def setup_pipes():
@@ -222,18 +240,18 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
     return training_dat, training_labels, X_ul
 
 
-def tri_fit(X,y,X_ul,models, save_output=True):
+def tri_fit(X,y,X_ul,models, save_output=False):
 
     num_folds = 10
 
     X = preprocessing.scale(X)
     X_ul = preprocessing.scale(X_ul)
 
-    #X_ul = X_ul[:50000,:]
-    X = X[:500,:]
-    y = y[:500,:]
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
+    X_train = X
+    y_train = y
+    X_test = X
+    y_test = y
+    #X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_train.shape))
     print('unlabeled data size = ' + str(X_ul.shape))
@@ -248,7 +266,6 @@ def tri_fit(X,y,X_ul,models, save_output=True):
 
         preds = []
         for i,(m,model) in enumerate(models.items()):
-            #print('training ' + str(model))
             X_train = training_dat[i]
             y_train = training_labels[i]
             pred, acc, prec, rec = generic_fit(model, X_train, y_train, X_test, y_test, X_ul)
@@ -267,6 +284,10 @@ def tri_fit(X,y,X_ul,models, save_output=True):
 
             pickle_out = open("tri_train_models_disagree.pkl", "wb")
             pickle.dump(models, pickle_out)
+            pickle_out.close()
+
+            pickle_out = open("tri_train_predictions_disagree.pkl", "wb")
+            pickle.dump(preds, pickle_out)
             pickle_out.close()
 
 
