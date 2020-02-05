@@ -5,6 +5,7 @@ import pickle
 import timeit
 
 from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
@@ -227,7 +228,8 @@ def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=False):
     X_ul = preprocessing.scale(X_ul)
 
     print(y_test)
-    #X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
+    # optionally overwrite test data provided externally and test internally on a split
+    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, random_state=42,test_size=0.2)
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_test.shape))
     print('target shape = ' + str(y_train.shape))
