@@ -34,7 +34,7 @@ def main():
 
     models = setup_pipes()
 
-    #tri_fit(X_train, X_test, y_train, y_test, X_ul, models)
+    tri_fit(X_train, X_test, y_train, y_test, X_ul, models)
 
 
 
