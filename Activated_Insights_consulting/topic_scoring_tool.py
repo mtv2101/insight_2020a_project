@@ -12,7 +12,7 @@ from embed import embeddings
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=5000):
+def regex_find_topics(df, nlp, num_matches=20000):
     start_time = timeit.default_timer()
 
     match = regex_matcher()
@@ -51,7 +51,7 @@ def regex_find_topics(df, nlp, num_matches=5000):
         sub_df = df[df.index.isin(com_ids)]
         sub_df = sub_df[['text']]
 
-        print(multilabel_df.shape, sub_df.shape, onehot.shape)
+        print(len(df), multilabel_df.shape, sub_df.shape, onehot.shape)
         out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=True)
         print(out_df.keys())
 
