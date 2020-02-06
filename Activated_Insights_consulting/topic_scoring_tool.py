@@ -53,7 +53,7 @@ def regex_find_topics(df, nlp, num_matches=2000):
 
     print(multilabel_df.shape, sub_df.shape, onehot.shape)
     out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=False)
-    print(out_df.shape())
+    print(out_df.shape)
 
     out_df.reset_index(inplace=True)
 
