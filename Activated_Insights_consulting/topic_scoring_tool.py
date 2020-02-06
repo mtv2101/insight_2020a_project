@@ -12,7 +12,7 @@ from embed import embeddings
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=2000):
+def regex_find_topics(df, nlp, num_matches=-1):
     start_time = timeit.default_timer()
 
     match = regex_matcher()
