@@ -1,14 +1,16 @@
 import numpy as np
 import pandas as pd
 import pickle
-
+import os
 import timeit
+import time
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
+from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn import metrics
@@ -22,11 +24,25 @@ from sklearn.decomposition import PCA
 ############################################3
 
 
-def main():
+def main(data_source='local'):
 
-    X_train, y_train, X_ul = load_regex_data()
+    if data_source == 'remote':
+        y_path = 'regex_scored_all_df.pkl'
+        x_path = 'unlabelled_bert_embeddings.npy'
+        hl_y_path = 'hand_scored_df.pkl'
+        hl_x_path = 'hand_labelled_bert_embeddings.npy'
 
-    X_test, y_test = load_hand_labelled_data()
+    elif data_source == 'local':
+        y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_all_df.pkl'
+        x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/unlabelled_bert_embeddings.npy'
+        hl_y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_scored_df.pkl'
+        hl_x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_labelled_bert_embeddings.npy'
+
+    #X_train, y_train, X_ul, ydf = load_regex_data(x_path, y_path)
+    X_test, y_test,_,_ = load_regex_data(x_path, y_path)
+    X_ul = get_unlabeled_data(x_path)
+    #X_test, y_test = load_hand_labelled_data(hl_x_path, hl_y_path)
+    X_train, y_train = load_hand_labelled_data(hl_x_path, hl_y_path)
 
     #print(X_train.shape, X_test.shape, X_ul.shape)
     X_train, X_test, X_ul = pca_reduce(X_train, X_test, X_ul)
@@ -38,71 +54,78 @@ def main():
 
 
 
-def load_regex_data():
+def load_regex_data(x_path, y_path):
 
-    y_path = 'regex_scored_df.pkl'
     ydf = pd.read_pickle(y_path)
-    categories = ydf.keys()[3:]
+    categories = ydf.keys()[5:]
     ydf_onehot = ydf[categories]
     ydf_onehot.keys()
     y = ydf_onehot.to_numpy()
 
-    x_path = 'unlabelled_bert_embeddings.npy'
     X_mat = np.load(x_path)
     # get X vectors that represent y data
-    X = X_mat[ydf['comment_idx']]
+    comment_idx = ydf['comment_idx']
+    comment_idx = [int(c) for c in comment_idx if ~np.isnan(c)]
+    print(max(comment_idx), X_mat.shape)
+    X = X_mat[comment_idx,:]
+    print(X.shape)
     ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
     X_ul = X_mat[ul_idx]
 
-    return X, y, X_ul
+    return X, y, X_ul, ydf
 
 
-def get_unlabeled_data():
+def get_unlabeled_data(ul_path):
 
-    x_path = 'unlabelled_bert_embeddings.npy'
-    X_mat = np.load(x_path)
+    X_mat = np.load(ul_path)
 
     return X_mat
 
 
-def load_hand_labelled_data():
+def load_hand_labelled_data(hl_x_path, hl_y_path):
 
-    #y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_df.pkl'
-    y_path = 'hand_scored_df.pkl'
     # labels are encoded as a string, so here we seperate them as a list
-    ydf = pd.read_pickle(y_path)
+    ydf = pd.read_pickle(hl_y_path)
     categories = ydf.keys()[4:]
     ydf_onehot = ydf[categories]
     ydf_onehot.keys()
     y = ydf_onehot.to_numpy()
 
-    #x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/tfidf_embeddings.npy'
-    x_path = 'hand_labelled_bert_embeddings.npy'
-    X_mat = np.load(x_path)
+    X_mat = np.load(hl_x_path)
 
     return X_mat, y
 
 
 def setup_pipes():
 
-    LogReg = Pipeline([('clf', OneVsRestClassifier(LogisticRegression(solver='sag',
-                                                                               multi_class='ovr',
-                                                                               C=1.0,
-                                                                               class_weight='None',
-                                                                               random_state=42,
-                                                                               max_iter=1000),
+    LogReg = Pipeline([('clf', OneVsRestClassifier(LogisticRegression(solver='lbfgs',
+                                                                       multi_class='ovr',
+                                                                       C=0.001,
+                                                                       class_weight='balanced',
+                                                                       random_state=42,
+                                                                       max_iter=1000),
                                                             n_jobs=-1))])
+
+    SVC = Pipeline([('clf', OneVsRestClassifier(LinearSVC(multi_class='ovr',
+                                                   C=0.001,
+                                                   class_weight='balanced'),
+                                                n_jobs=-1))])
 
     AdaBoost = Pipeline([('clf', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50,
-                                                                               random_state=42),
+                                                                        random_state=42),
                                                             n_jobs=-1))])
 
-    RForest = Pipeline([('clf', OneVsRestClassifier(RandomForestClassifier(n_estimators=50, random_state=42, max_depth=5, min_samples_leaf=3),
-                                                         n_jobs=-1))])
+    RForest = Pipeline([('clf', OneVsRestClassifier(RandomForestClassifier(n_estimators=50,
+                                                                           random_state=42,
+                                                                           max_depth=10,
+                                                                           min_samples_leaf=5,
+                                                                           class_weight='balanced'),
+                                                            n_jobs=-1))])
 
-
-    MLP = Pipeline([('clf', OneVsRestClassifier(MLPClassifier(tol=1e-3, max_iter=1000),
-                                                      n_jobs=-1))])
+    MLP = Pipeline([('clf', OneVsRestClassifier(MLPClassifier(tol=1e-3,
+                                                              max_iter=1000,
+                                                              activation='logistic'),
+                                                            n_jobs=-1))])
 
     GP = Pipeline([('clf', OneVsRestClassifier(GaussianProcessClassifier(max_iter_predict = 1000, multi_class = 'one_vs_rest'),
                                                      n_jobs=-1))])
@@ -120,6 +143,7 @@ def setup_pipes():
 def pca_reduce(X_train, X_test, X_ul):
 
     X_merge = np.concatenate([X_train, X_test, X_ul], axis=0)
+    X_merge = preprocessing.scale(X_merge)
     pca = PCA(n_components=20)
     X_xform = pca.fit_transform(X_merge)
 
@@ -172,8 +196,6 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
     for i in range(ensemble.shape[1]):
         if training_method == 'disagreement':
             # if model 0 is the odd-one-out add labels to its training set
-            #print(ensemble[:,i,:].shape)
-            #print(ensemble[0,i,:], ensemble[1,i,:], ensemble[2,i,:])
             if (ensemble[0, i, :] != ensemble[1, i, :]).any() and (
                     ensemble[0, i, :] != ensemble[2, i, :]).any() and (
                     ensemble[1, i, :] == ensemble[2, i, :]).all():
@@ -186,7 +208,6 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
             elif (ensemble[0, i, :] != ensemble[1, i, :]).any() and (
                     ensemble[1, i, :] != ensemble[2, i, :]).any() and (
                     ensemble[0, i, :] == ensemble[2, i, :]).all():
-                #print(ensemble[0, i, :], ensemble[1, i, :])
                 X1 = np.vstack([X1, X_ul[i, :]])
                 X_ul_delete_list.append(i)
                 y1 = np.vstack([y1, ensemble[0, i, :].squeeze()])
@@ -195,7 +216,6 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
             elif (ensemble[2, i, :] != ensemble[1, i, :]).any() and (
                     ensemble[2, i, :] != ensemble[0, i, :]).any() and (
                     ensemble[1, i, :] == ensemble[0, i, :]).all():
-                #print(ensemble[2, i, :], ensemble[1, i, :])
                 X2 = np.vstack([X2, X_ul[i, :]])
                 X_ul_delete_list.append(i)
                 y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
@@ -225,16 +245,12 @@ def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=True):
 
     num_folds = 15
 
-    X_train = preprocessing.scale(X_train)
-    X_test = preprocessing.scale(X_test)
-    X_ul = preprocessing.scale(X_ul)
-
-    print(y_test)
     # optionally overwrite test data provided externally and test internally on a split
-    X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, random_state=42,test_size=0.5)
+    #X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, random_state=42,test_size=0.5)
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_test.shape))
-    print('target shape = ' + str(y_train.shape))
+    print('training target shape = ' + str(y_train.shape))
+    print('testing target shape = ' + str(y_test.shape))
     print('unlabeled data size = ' + str(X_ul.shape))
 
     # initialize three copies of training data before accumulating model-specific examples
@@ -258,18 +274,23 @@ def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=True):
 
         training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
 
-        if save_output:
-            pickle_out = open("tri_train_metrics_disagree.pkl", "wb")
-            pickle.dump(model_metrics, pickle_out)
-            pickle_out.close()
+    if save_output:
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
 
-            pickle_out = open("tri_train_models_disagree.pkl", "wb")
-            pickle.dump(models, pickle_out)
-            pickle_out.close()
+        metric_path = "tri_train_metrics_disagree_" + str(timestamp) + '.pkl'
+        pickle_out = open(metric_path, "wb")
+        pickle.dump(model_metrics, pickle_out)
+        pickle_out.close()
 
-            pickle_out = open("tri_train_predictions_disagree.pkl", "wb")
-            pickle.dump(preds, pickle_out)
-            pickle_out.close()
+        model_path = "tri_train_models_disagree_" + str(timestamp) + '.pkl'
+        pickle_out = open(model_path, "wb")
+        pickle.dump(models, pickle_out)
+        pickle_out.close()
+
+        predictions_path = "tri_train_predictions_disagree_" + str(timestamp) + '.pkl'
+        pickle_out = open(predictions_path, "wb")
+        pickle.dump(preds, pickle_out)
+        pickle_out.close()
 
 
 if __name__ == "__main__":
