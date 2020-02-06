@@ -12,7 +12,7 @@ from embed import embeddings
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=-1):
+def regex_find_topics(df, nlp, num_matches):
     start_time = timeit.default_timer()
 
     match = regex_matcher()
@@ -108,7 +108,7 @@ def hand_score(df, num_examples=10):
 
 
 
-def main(run_regex=True, do_hand_scoring=False):
+def main(run_regex=True, do_hand_scoring=False, num_matches=-1):
     # randomly select "num_examples" of text from each class for hand-labelling
 
     model = 'en_core_web_sm'  # only minimal model needed
@@ -119,7 +119,7 @@ def main(run_regex=True, do_hand_scoring=False):
     df = embeds.ul_df # get unlabeled dataframe
 
     if run_regex:
-        df = regex_find_topics(df, nlp)
+        df = regex_find_topics(df, nlp, num_matches)
     else:
         df = read_matched_csv()
 
