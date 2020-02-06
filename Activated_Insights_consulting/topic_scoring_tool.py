@@ -49,8 +49,9 @@ def regex_find_topics(df, nlp, num_matches=2000):
 
     onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
 
-    sub_df = df[df.index.isin(com_ids)]
-    sub_df = sub_df[['text']]
+    #sub_df = df[df.index.isin(com_ids)]
+    #sub_df = sub_df[['text']]
+    sub_df = df.loc[com_ids]
 
     print(multilabel_df.shape, sub_df.shape, onehot.shape)
     print(multilabel_df.keys(), sub_df.keys(), onehot.keys())
