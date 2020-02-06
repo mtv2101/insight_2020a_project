@@ -51,6 +51,7 @@ def regex_find_topics(df, nlp, num_matches=5000):
         sub_df = df[df.index.isin(com_ids)]
         sub_df = sub_df[['text']]
 
+        print(multilabel_df.shape, sub_df.shape, onehot.shape)
         out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=True)
         print(out_df.keys())
 
@@ -59,7 +60,7 @@ def regex_find_topics(df, nlp, num_matches=5000):
     process_time = timeit.default_timer() - start_time
     print(str(len(df)) + ' submissions, query took ' + str(process_time) + ' seconds')
 
-    pd.to_pickle(out_df, 'regex_scored_all_df.pkl')
+    #pd.to_pickle(out_df, 'regex_scored_all_df.pkl')
 
     return out_df
 
