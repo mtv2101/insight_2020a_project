@@ -37,6 +37,7 @@ def regex_find_topics(df, nlp, num_matches=2000):
     labels = []
     idx = []
     for id in com_ids:
+        # match_df has several columns, here lets pull just one
         idx.append(int(id))
         com_df = match_df[match_df['comment_idx'] == id]
         com_labs = com_df.topic.unique()
@@ -52,6 +53,7 @@ def regex_find_topics(df, nlp, num_matches=2000):
     sub_df = sub_df[['text']]
 
     print(multilabel_df.shape, sub_df.shape, onehot.shape)
+    print(multilabel_df.keys(), sub_df.keys(), onehot.keys())
     out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=False)
     print(out_df.shape)
 
