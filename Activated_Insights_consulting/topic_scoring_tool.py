@@ -12,7 +12,7 @@ from embed import embeddings
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=20000):
+def regex_find_topics(df, nlp, num_matches=2000):
     start_time = timeit.default_timer()
 
     match = regex_matcher()
@@ -33,27 +33,27 @@ def regex_find_topics(df, nlp, num_matches=20000):
             out_df = match.match_topics(t, doc)
             match_df = match_df.append(out_df)
 
-        com_ids = match_df.comment_idx.unique()
-        labels = []
-        idx = []
-        for id in com_ids:
-            idx.append(int(id))
-            com_df = match_df[match_df['comment_idx'] == id]
-            com_labs = com_df.topic.unique()
-            labels.append(com_labs)
+    com_ids = match_df.comment_idx.unique()
+    labels = []
+    idx = []
+    for id in com_ids:
+        idx.append(int(id))
+        com_df = match_df[match_df['comment_idx'] == id]
+        com_labs = com_df.topic.unique()
+        labels.append(com_labs)
 
-        multilabel_df = pd.DataFrame()
-        multilabel_df['comment_idx'] = idx
-        multilabel_df['labels'] = labels
+    multilabel_df = pd.DataFrame()
+    multilabel_df['comment_idx'] = idx
+    multilabel_df['labels'] = labels
 
-        onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
+    onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
 
-        sub_df = df[df.index.isin(com_ids)]
-        sub_df = sub_df[['text']]
+    sub_df = df[df.index.isin(com_ids)]
+    sub_df = sub_df[['text']]
 
-        print(len(df), multilabel_df.shape, sub_df.shape, onehot.shape)
-        out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=True)
-        print(out_df.keys())
+    print(len(df), multilabel_df.shape, sub_df.shape, onehot.shape)
+    out_df = pd.concat([multilabel_df, sub_df, onehot], axis=1, ignore_index=True)
+    print(out_df.keys())
 
     out_df.reset_index(inplace=True)
 
