@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import timeit
 import spacy
+import time
 
 from word_match import regex_matcher
 from embed import embeddings
@@ -11,7 +12,7 @@ from embed import embeddings
 ######################################
 
 
-def regex_find_topics(df, nlp, num_matches=-1):
+def regex_find_topics(df, nlp, num_matches=5000):
     start_time = timeit.default_timer()
 
     match = regex_matcher()
@@ -142,6 +143,10 @@ def main(run_regex=True, do_hand_scoring=False):
 
     if do_hand_scoring:
         hand_score(df, num_examples=10)
+
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    save_path = "regex_scores_" + str(timestamp) + '.pkl'
+    pd.to_pickle(df, save_path)
 
     return df
 
