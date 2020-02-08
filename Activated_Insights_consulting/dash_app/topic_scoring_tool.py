@@ -5,8 +5,8 @@ import timeit
 import spacy
 import time
 
-from word_match import regex_matcher
-from embed import embeddings
+from dash_app.word_match import regex_matcher
+from dash_app.embed import embeddings
 
 
 ######################################

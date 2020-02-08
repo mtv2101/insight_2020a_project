@@ -16,9 +16,9 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-df = pd.read_pickle('/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_all_df.pkl')
+df = pd.read_pickle('/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scores_20200206-221204.pkl')
 df = df.dropna(axis=0)
-classes, class_counts = get_class_frequency(df)
+classes, class_counts, uncat_count = get_class_frequency(df)
 class_counts = [count/float(len(df)) for count in class_counts]
 dropdown_dict = [{'label':c, 'value':c} for c in classes]# list of single-key dicts, one for each drowpdown item
 
@@ -26,11 +26,11 @@ dropdown_dict = [{'label':c, 'value':c} for c in classes]# list of single-key di
 
 LEFT_COLUMN = dbc.Jumbotron(
     [
-        html.H4(children="Survey Text by Topic", className="display-5"),
-        html.Hr(className="my-2"),
-        html.Label("Select a topic", style={"marginTop": 50}, className="lead"),
+        #html.H4(children="Survey Text by Topic", className="display-5"),
+        #html.Hr(className="my-2"),
+        html.Label("Select a topic", style={"marginTop": 0}, className="lead"),
         dcc.Dropdown(options=dropdown_dict, id='choose_cat'),
-        dcc.Markdown(id='comment_text'),
+        dcc.Markdown(id='comment_text', style={"marginTop": 20}),
     ])
 
 

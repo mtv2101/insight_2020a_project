@@ -6,6 +6,7 @@ import timeit
 import time
 
 from sklearn import preprocessing
+from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
@@ -18,6 +19,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
+
+from predict_and_plot import get_classes
 
 
 
@@ -33,32 +36,30 @@ def main(data_source='local'):
         hl_x_path = 'hand_labelled_bert_embeddings.npy'
 
     elif data_source == 'local':
-        y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scored_all_df.pkl'
+        y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scores_20200206-221204.pkl'
         x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/unlabelled_bert_embeddings.npy'
         hl_y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_scored_df.pkl'
         hl_x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_labelled_bert_embeddings.npy'
 
-    #X_train, y_train, X_ul, ydf = load_regex_data(x_path, y_path)
-    X_test, y_test,_,_ = load_regex_data(x_path, y_path)
+    X_train, y_train, X_ul, ydf = load_regex_data(x_path, y_path)
     X_ul = get_unlabeled_data(x_path)
     #X_test, y_test = load_hand_labelled_data(hl_x_path, hl_y_path)
-    X_train, y_train = load_hand_labelled_data(hl_x_path, hl_y_path)
+    #X_train, y_train = load_hand_labelled_data(hl_x_path, hl_y_path)
 
-    #print(X_train.shape, X_test.shape, X_ul.shape)
-    X_train, X_test, X_ul = pca_reduce(X_train, X_test, X_ul)
-    #print(X_train.shape, X_test.shape, X_ul.shape)
+    X_train, X_ul = pca_reduce(X_train, X_ul)
 
     models = setup_pipes()
 
-    tri_fit(X_train, X_test, y_train, y_test, X_ul, models)
-
+    tri_fit(X_train, y_train, X_ul, models)
+    #tri_fold_skf(X_train, y_train, X_ul, models)
 
 
 def load_regex_data(x_path, y_path):
 
     ydf = pd.read_pickle(y_path)
-    categories = ydf.keys()[5:]
-    ydf_onehot = ydf[categories]
+
+    classes = get_classes()
+    ydf_onehot = ydf[ydf.columns.intersection(classes)]
     ydf_onehot.keys()
     y = ydf_onehot.to_numpy()
 
@@ -101,7 +102,7 @@ def setup_pipes():
     LogReg = Pipeline([('clf', OneVsRestClassifier(LogisticRegression(solver='lbfgs',
                                                                        multi_class='ovr',
                                                                        C=0.001,
-                                                                       #class_weight='balanced',
+                                                                       class_weight=None,
                                                                        random_state=42,
                                                                        max_iter=1000
                                                                       ),
@@ -120,7 +121,7 @@ def setup_pipes():
                                                                            random_state=42,
                                                                            max_depth=10,
                                                                            min_samples_leaf=5,
-                                                                           #class_weight='balanced'
+                                                                           class_weight=None
                                                                            ),
                                                             n_jobs=-1))])
 
@@ -142,18 +143,16 @@ def setup_pipes():
     return models
 
 
-def pca_reduce(X_train, X_test, X_ul):
+def pca_reduce(X_train, X_ul):
 
-    X_merge = np.concatenate([X_train, X_test, X_ul], axis=0)
-    X_merge = preprocessing.scale(X_merge)
+    X_merge = np.concatenate([X_train, X_ul], axis=0)
     pca = PCA(n_components=20)
     X_xform = pca.fit_transform(X_merge)
 
     X_train = X_xform[:X_train.shape[0],:]
-    X_test = X_xform[X_train.shape[0]:X_train.shape[0]+X_test.shape[0],:]
-    X_ul = X_xform[X_train.shape[0]+X_test.shape[0]:,:]
+    X_ul = X_xform[X_train.shape[0]:,:]
 
-    return X_train, X_test, X_ul
+    return X_train, X_ul
 
 
 def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
@@ -172,7 +171,7 @@ def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
     y_pred = model.predict(X_test)
     acc = metrics.accuracy_score(y_test, y_pred)
     prec = metrics.precision_score(y_test, y_pred, average='weighted')
-    prec_all = metrics.precision_score(y_test, y_pred, average='None')
+    prec_all = metrics.precision_score(y_test, y_pred, average=None)
     rec = metrics.recall_score(y_test, y_pred,average='macro')
     print('accuracy = ' + str(acc))
     print('macro precision = ' + str(prec))
@@ -244,12 +243,58 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
     return training_dat, training_labels, X_ul
 
 
-def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=True):
+def tri_fold_skf(X, y, X_ul, models, save_output=True):
 
-    num_folds = 15
+    skf = StratifiedKFold(n_splits=3, random_state=42)
+
+    for train_index, test_index in skf.split(X, y):
+        print("TRAIN:", train_index, "TEST:", test_index)
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        print('training data size = ' + str(X_train.shape))
+        print('testing data size = ' + str(X_test.shape))
+        print('training target shape = ' + str(y_train.shape))
+        print('testing target shape = ' + str(y_test.shape))
+        print('unlabeled data size = ' + str(X_ul.shape))
+
+        # initialize three copies of training data before accumulating model-specific examples
+        training_dat = [X_train, X_train, X_train]
+        training_labels = [y_train, y_train, y_train]
+
+        model_metrics = [{model: {'acc': [], 'prec': [], 'prec_all': [], 'rec': [], 'train_size': []}} for model in
+                         models.keys()]
+
+        num_iters = 3
+
+        for n in range(num_iters):
+
+            preds = []
+            for i, (m, model) in enumerate(models.items()):
+                X_train = training_dat[i]
+                y_train = training_labels[i]
+                pred, acc, prec, prec_all, rec = generic_fit(model, X_train, y_train, X_test, y_test, X_ul)
+                preds.append(pred)
+                model_metrics[i][m]['acc'].append(acc)
+                model_metrics[i][m]['prec'].append(prec)
+                model_metrics[i][m]['prec_all'].append(prec_all)
+                model_metrics[i][m]['rec'].append(rec)
+                model_metrics[i][m]['train_size'].append(X_train.shape[0])
+
+            training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
+
+    if save_output:
+        save_things(model_metrics, models, preds)
+
+
+def tri_fit(X, y, X_ul, models, save_output=True):
+
+    num_iters = 3
+
+    X = X[:10000,:]
+    y = y[:10000,:]
 
     # optionally overwrite test data provided externally and test internally on a split
-    #X_train, X_test, y_train, y_test = train_test_split(X_train, y_train, random_state=42,test_size=0.5)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.5)
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_test.shape))
     print('training target shape = ' + str(y_train.shape))
@@ -262,7 +307,7 @@ def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=True):
 
     model_metrics = [{model:{'acc':[], 'prec':[], 'prec_all':[], 'rec':[], 'train_size':[]}} for model in models.keys()]
 
-    for n in range(num_folds):
+    for n in range(num_iters):
 
         preds = []
         for i,(m,model) in enumerate(models.items()):
@@ -279,22 +324,26 @@ def tri_fit(X_train, X_test, y_train, y_test, X_ul, models, save_output=True):
         training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
 
     if save_output:
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        save_things(model_metrics, models, preds)
 
-        metric_path = "tri_train_metrics_disagree_" + str(timestamp) + '.pkl'
-        pickle_out = open(metric_path, "wb")
-        pickle.dump(model_metrics, pickle_out)
-        pickle_out.close()
 
-        model_path = "tri_train_models_disagree_" + str(timestamp) + '.pkl'
-        pickle_out = open(model_path, "wb")
-        pickle.dump(models, pickle_out)
-        pickle_out.close()
+def save_things(model_metrics, models, preds):
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
 
-        predictions_path = "tri_train_predictions_disagree_" + str(timestamp) + '.pkl'
-        pickle_out = open(predictions_path, "wb")
-        pickle.dump(preds, pickle_out)
-        pickle_out.close()
+    metric_path = "tri_train_metrics_disagree_" + str(timestamp) + '.pkl'
+    pickle_out = open(metric_path, "wb")
+    pickle.dump(model_metrics, pickle_out)
+    pickle_out.close()
+
+    model_path = "tri_train_models_disagree_" + str(timestamp) + '.pkl'
+    pickle_out = open(model_path, "wb")
+    pickle.dump(models, pickle_out)
+    pickle_out.close()
+
+    predictions_path = "tri_train_predictions_disagree_" + str(timestamp) + '.pkl'
+    pickle_out = open(predictions_path, "wb")
+    pickle.dump(preds, pickle_out)
+    pickle_out.close()
 
 
 if __name__ == "__main__":

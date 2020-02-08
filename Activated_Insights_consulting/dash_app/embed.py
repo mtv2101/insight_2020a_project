@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 from spacy_transformers import TransformersLanguage, TransformersWordPiecer, TransformersTok2Vec
 
-from document import survey_doc
+from dash_app.document import survey_doc
 
 
 ##############################
