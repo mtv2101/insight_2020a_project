@@ -109,6 +109,12 @@ def tri_predict(models, embeddings):
     return consensus_labels
 
 
+def single_model_predict(models, model_name='MLP', embeddings):
+    model = models[model_name]
+    pred = model.predict(embeddings)
+    return pred
+
+
 
 def score_predictions(predictions, gt):
 

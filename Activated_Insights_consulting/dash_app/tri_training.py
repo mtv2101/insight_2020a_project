@@ -20,6 +20,8 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.decomposition import PCA
 
+from skmultilearn.model_selection import iterative_train_test_split
+
 from predict_and_plot import get_classes
 
 
@@ -50,8 +52,8 @@ def main(data_source='local'):
 
     models = setup_pipes()
 
-    tri_fit(X_train, y_train, X_ul, models)
-    #tri_fold_skf(X_train, y_train, X_ul, models)
+    #tri_fit(X_train, y_train, X_ul, models)
+    tri_fold_skf(X_train, y_train, X_ul, models)
 
 
 def load_regex_data(x_path, y_path):
@@ -99,41 +101,44 @@ def load_hand_labelled_data(hl_x_path, hl_y_path):
 
 def setup_pipes():
 
-    LogReg = Pipeline([('clf', OneVsRestClassifier(LogisticRegression(solver='lbfgs',
-                                                                       multi_class='ovr',
-                                                                       C=0.001,
-                                                                       class_weight=None,
-                                                                       random_state=42,
-                                                                       max_iter=1000
+    LogReg = Pipeline([('LogReg', OneVsRestClassifier(LogisticRegression(penalty='l2',
+                                                                           solver='lbfgs',
+                                                                           multi_class='ovr',
+                                                                           C=0.001,
+                                                                           class_weight=None,
+                                                                           #random_state=42,
+                                                                           max_iter=1000,
+                                                                           warm_start=True
                                                                       ),
                                                             n_jobs=-1))])
 
-    SVC = Pipeline([('clf', OneVsRestClassifier(LinearSVC(multi_class='ovr',
+    SVC = Pipeline([('SVC', OneVsRestClassifier(LinearSVC(multi_class='ovr',
                                                    C=0.001,
                                                    class_weight='balanced'),
                                                 n_jobs=-1))])
 
-    AdaBoost = Pipeline([('clf', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50,
+    AdaBoost = Pipeline([('AdaBoost', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50,
                                                                         random_state=42),
                                                             n_jobs=-1))])
 
-    RForest = Pipeline([('clf', OneVsRestClassifier(RandomForestClassifier(n_estimators=50,
-                                                                           random_state=42,
-                                                                           max_depth=10,
-                                                                           min_samples_leaf=5,
-                                                                           class_weight=None
+    RForest = Pipeline([('RForest', OneVsRestClassifier(RandomForestClassifier(n_estimators=100,
+                                                                           #random_state=42,
+                                                                           max_depth=5,
+                                                                           min_samples_leaf=3,
+                                                                           class_weight='balanced_subsample'
                                                                            ),
                                                             n_jobs=-1))])
 
-    MLP = Pipeline([('clf', OneVsRestClassifier(MLPClassifier(tol=1e-3,
+    MLP = Pipeline([('MLP', OneVsRestClassifier(MLPClassifier(tol=1e-3,
+                                                              alpha=0.0001,
                                                               max_iter=1000,
                                                               activation='logistic'),
                                                             n_jobs=-1))])
 
-    GP = Pipeline([('clf', OneVsRestClassifier(GaussianProcessClassifier(max_iter_predict = 1000, multi_class = 'one_vs_rest'),
+    GP = Pipeline([('GP', OneVsRestClassifier(GaussianProcessClassifier(max_iter_predict = 1000, multi_class = 'one_vs_rest'),
                                                      n_jobs=-1))])
 
-    KNN = Pipeline([('clf', OneVsRestClassifier(KNeighborsClassifier(n_neighbors=5,
+    KNN = Pipeline([('KNN', OneVsRestClassifier(KNeighborsClassifier(n_neighbors=5,
                                                                               leaf_size=100,
                                                                               weights='uniform',
                                                                               algorithm='ball_tree'),
@@ -245,42 +250,42 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
 
 def tri_fold_skf(X, y, X_ul, models, save_output=True):
 
-    skf = StratifiedKFold(n_splits=3, random_state=42)
+    X = X[:10000,:]
+    y = y[:10000,:]
 
-    for train_index, test_index in skf.split(X, y):
-        print("TRAIN:", train_index, "TEST:", test_index)
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
-        print('training data size = ' + str(X_train.shape))
-        print('testing data size = ' + str(X_test.shape))
-        print('training target shape = ' + str(y_train.shape))
-        print('testing target shape = ' + str(y_test.shape))
-        print('unlabeled data size = ' + str(X_ul.shape))
+    X_train, y_train, X_test, y_test = iterative_train_test_split(X, y, test_size = 0.5)
 
-        # initialize three copies of training data before accumulating model-specific examples
-        training_dat = [X_train, X_train, X_train]
-        training_labels = [y_train, y_train, y_train]
+    print('training data size = ' + str(X_train.shape))
+    print('testing data size = ' + str(X_test.shape))
+    print('training target shape = ' + str(y_train.shape))
+    print('testing target shape = ' + str(y_test.shape))
+    print('unlabeled data size = ' + str(X_ul.shape))
 
-        model_metrics = [{model: {'acc': [], 'prec': [], 'prec_all': [], 'rec': [], 'train_size': []}} for model in
-                         models.keys()]
+    # initialize three copies of training data before accumulating model-specific examples
+    training_dat = [X_train, X_train, X_train]
+    training_labels = [y_train, y_train, y_train]
 
-        num_iters = 3
+    model_metrics = [{model: {'acc':[], 'prec':[], 'prec_all':[], 'rec':[], 'train_size':[]}} for model in models.keys()]
 
-        for n in range(num_iters):
+    num_iters = 3
 
-            preds = []
-            for i, (m, model) in enumerate(models.items()):
-                X_train = training_dat[i]
-                y_train = training_labels[i]
-                pred, acc, prec, prec_all, rec = generic_fit(model, X_train, y_train, X_test, y_test, X_ul)
-                preds.append(pred)
-                model_metrics[i][m]['acc'].append(acc)
-                model_metrics[i][m]['prec'].append(prec)
-                model_metrics[i][m]['prec_all'].append(prec_all)
-                model_metrics[i][m]['rec'].append(rec)
-                model_metrics[i][m]['train_size'].append(X_train.shape[0])
+    for n in range(num_iters):
 
-            training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
+        preds = []
+        for i, (m, model) in enumerate(models.items()):
+            print(m)
+            X_train = training_dat[i]
+            y_train = training_labels[i]
+            pred, acc, prec, prec_all, rec = generic_fit(model, X_train, y_train, X_test, y_test, X_ul)
+            preds.append(pred)
+            model_metrics[i][m]['acc'].append(acc)
+            model_metrics[i][m]['prec'].append(prec)
+            model_metrics[i][m]['prec_all'].append(prec_all)
+            model_metrics[i][m]['rec'].append(rec)
+            model_metrics[i][m]['train_size'].append(X_train.shape[0])
+            print('class frequency: ' + str(np.mean(pred, axis=0)))
+
+        training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
 
     if save_output:
         save_things(model_metrics, models, preds)
@@ -288,13 +293,13 @@ def tri_fold_skf(X, y, X_ul, models, save_output=True):
 
 def tri_fit(X, y, X_ul, models, save_output=True):
 
-    num_iters = 3
+    num_iters = 15
 
     X = X[:10000,:]
     y = y[:10000,:]
 
     # optionally overwrite test data provided externally and test internally on a split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.5)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_test.shape))
     print('training target shape = ' + str(y_train.shape))
@@ -311,6 +316,7 @@ def tri_fit(X, y, X_ul, models, save_output=True):
 
         preds = []
         for i,(m,model) in enumerate(models.items()):
+            print(m)
             X_train = training_dat[i]
             y_train = training_labels[i]
             pred, acc, prec, prec_all, rec = generic_fit(model, X_train, y_train, X_test, y_test, X_ul)
@@ -320,6 +326,9 @@ def tri_fit(X, y, X_ul, models, save_output=True):
             model_metrics[i][m]['prec_all'].append(prec_all)
             model_metrics[i][m]['rec'].append(rec)
             model_metrics[i][m]['train_size'].append(X_train.shape[0])
+            print('class frequency: ' + str(np.mean(pred, axis=0)))
+            #for e in model.named_steps[m].estimators_:
+                #print(e.coef_)
 
         training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
 
