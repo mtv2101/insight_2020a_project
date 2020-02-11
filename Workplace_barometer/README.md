@@ -22,7 +22,7 @@ flask
 
 
 ### Overview
-<p>The Workplace Barometer is a tool that sorts text by into pre-specified topics.
+<p>The Workplace Barometer is a tool that sorts text by into one or many pre-specified topics.
 It was written for a consulting client who wished to summarize the topics present in long-form survey answers,
 and to visualize the results in a web-app.  The front-end visualization is a simple bar-chart that
 represents the frequency of occurrence for each topic in the text, and a drop-down menu lets the user
