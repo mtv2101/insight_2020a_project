@@ -2,7 +2,6 @@
 
 Matt Valley
 <br>Insight Data Science Demo project, cohort 2020A
-<br>January, 2020
 <br>Seattle WA
 
 ###
