@@ -8,7 +8,7 @@ from io import StringIO
 import time
 
 
-def import_pdf(path, library='pdfminer'):
+def get_pdf_text(path, library='pdfminer'):
 
     if library == 'pypdf2':
 

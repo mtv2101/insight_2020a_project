@@ -69,7 +69,7 @@ def regex_find_topics(df, nlp, num_matches):
 
 
 def read_matched_csv():
-    match_df = pd.read_pickle('~/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/match_df.pkl')
+    match_df = pd.read_pickle('~/PycharmProjects/insight_2020a_project/Workplace_barometer/match_df.pkl')
     return match_df
 
 

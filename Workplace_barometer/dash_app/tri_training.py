@@ -24,9 +24,9 @@ from skmultilearn.model_selection import iterative_train_test_split
 
 from predict_and_plot import get_classes
 
-
-
-############################################3
+############################################
+# Matt Valley, Jan 2020
+############################################
 
 
 def main(data_source='local'):
@@ -38,10 +38,10 @@ def main(data_source='local'):
         hl_x_path = 'hand_labelled_bert_embeddings.npy'
 
     elif data_source == 'local':
-        y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scores_20200206-221204.pkl'
-        x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/unlabelled_bert_embeddings.npy'
-        hl_y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_scored_df.pkl'
-        hl_x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_labelled_bert_embeddings.npy'
+        y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/regex_scores_20200206-221204.pkl'
+        x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/unlabelled_bert_embeddings.npy'
+        hl_y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/hand_scored_df.pkl'
+        hl_x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/hand_labelled_bert_embeddings.npy'
 
     X_train, y_train, X_ul, ydf = load_regex_data(x_path, y_path)
     X_ul = get_unlabeled_data(x_path)

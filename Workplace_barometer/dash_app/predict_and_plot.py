@@ -16,7 +16,8 @@ def main():
     embeddings = load_embeddings()
 
     #predictions = [predict_new_labels(model, embeddings) for i,(m,model) in enumerate(models.items())]
-    predictions = tri_predict(models, embeddings)
+    #predictions = tri_predict(models, embeddings)
+    predictions = single_model_predict(models, embeddings)
     gt, gt_indices = load_ground_truth()
     preds_matching_gt = predictions[gt_indices]
     print('ground truth shape = ' + str(gt.shape))
@@ -25,14 +26,18 @@ def main():
 
     #class_prec = [score_predictions(predictions[m], gt) for m in range(len(models))]
     class_prec = score_predictions(preds_matching_gt, gt)
+    class_counts, uncat_count = get_class_frequency_preds(preds_matching_gt)
+    all_class_counts, uncat_count = get_class_frequency_preds(predictions)
     plot_scores(class_prec)
+    plot_scores(class_counts)
+    plot_scores(all_class_counts)
 
     return predictions, gt, class_prec
 
 
 def load_models():
     # expected input is a list of sklearn models, as output from tri_training.py
-    model_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/dash_app/tri_train_models_disagree_20200206-162059.pkl'
+    model_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/dash_app/tri_train_models_disagree_20200210-132630.pkl'
     models = pd.read_pickle(model_path)
     return models
 
@@ -59,7 +64,7 @@ def get_classes():
 
 def load_embeddings():
 
-    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/unlabelled_bert_embeddings.npy'
+    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/unlabelled_bert_embeddings.npy'
     embeddings = np.load(path)
     embeddings = pca_reduce(embeddings)
 
@@ -75,8 +80,8 @@ def pca_reduce(X):
 
 def load_ground_truth():
 
-    #gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/hand_scored_df.pkl'
-    gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scores_20200206-221204.pkl'
+    #gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/hand_scored_df.pkl'
+    gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/regex_scores_20200206-221204.pkl'
     gt = pd.read_pickle(gt_path)
 
     # gt df contains more than one-hot labels, get just there
@@ -109,7 +114,7 @@ def tri_predict(models, embeddings):
     return consensus_labels
 
 
-def single_model_predict(models, model_name='MLP', embeddings):
+def single_model_predict(models, embeddings, model_name='MLP'):
     model = models[model_name]
     pred = model.predict(embeddings)
     return pred
@@ -135,25 +140,18 @@ def score_predictions(predictions, gt):
     return class_precision
 
 
-def plot_scores(class_precision):
+def plot_scores(score):
 
     classes = get_classes()
 
     fig = go.Figure(data=[
-        go.Bar(name='Topic precision', x=classes, y=class_precision)
-    ])
-    # Change the bar mode
-    fig.update_layout(barmode='stack')
-    fig.show()
-
-    fig = go.Figure(data=[
-        go.Bar(name='Class Frequency', x=classes, y=class_counts)
+        go.Bar(name='Topic precision', x=classes, y=score)
     ])
     fig.update_layout(barmode='stack')
     fig.show()
 
 
-def get_class_frequency(df):
+def get_class_frequency_df(df):
 
     classes = get_classes()
     print(df.keys())
@@ -164,6 +162,12 @@ def get_class_frequency(df):
     return classes, class_counts, uncat_count
 
 
+def get_class_frequency_preds(preds):
+
+    class_counts = np.sum(preds, axis=0)
+    uncat_count = preds.shape[0] - sum(class_counts)
+
+    return class_counts, uncat_count
 
 
 if __name__ == "__main__":

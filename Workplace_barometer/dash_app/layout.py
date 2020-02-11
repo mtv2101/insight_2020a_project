@@ -16,7 +16,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-df = pd.read_pickle('/home/matt_valley/PycharmProjects/insight_2020a_project/Activated_Insights_consulting/regex_scores_20200206-221204.pkl')
+df = pd.read_pickle('/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/regex_scores_20200206-221204.pkl')
 df = df.dropna(axis=0)
 classes, class_counts, uncat_count = get_class_frequency(df)
 class_counts = [count/float(len(df)) for count in class_counts]
