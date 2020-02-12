@@ -1,5 +1,9 @@
 # Default ignored files
+*.ipynb
+/.idea
 /workspace.xml
 /Resto_names/yelp_dataset
 /Workplace_barometer/AI_survey_data
-*.ipynb
+/Workplace_barometer/output
+/Workplace_barometer/sentiment_labelled_sentences
+/Workplace_barometer/.ipynb_checkpoints
