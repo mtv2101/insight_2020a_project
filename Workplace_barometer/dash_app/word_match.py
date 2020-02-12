@@ -118,7 +118,11 @@ class regex_matcher(object):
                                                 {"hygene": "(.?.?hygen.?.?)"}, #hygeneic, unhygenic
                                                 {"resort": "[Rr](resort)"},
                                                 {"physical plant": "[Pp](hysical.?plant)"}#
-                                                ]
+                                                ],
+                  'N/A':                        [{'Nothing': "[Nn](othing)"},
+                                                {'None': "[Nn](one)"},
+                                                {'N/A': "[Nn](.?)[Aa]"},
+                                                {'No comment': "[Nn](o.?)[Cc](omment)"}]
                       }
 
     def get_match_context(self, matches, doc):
