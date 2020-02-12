@@ -143,6 +143,23 @@ class regex_matcher(object):
 
 
     def match_topics(self, idx, doc):
+        out_df = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'text'])
+        # setup spacy matcher
+        matcher = Matcher(self.nlp.vocab)
+        self.match_dict = dict((e, []) for e in self.topics)
+        for topic,rules in self.topics.items():
+            for rule in rules:
+                for key,regex in rule.items():
+                    for match in re.finditer(regex, doc.text):
+                        out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'text':doc.text}
+                        out_df = out_df.append(out_dict, ignore_index=True)
+        return out_df
+
+
+    def match_topics_with_spans(self, idx, doc):
+        # this extracts a span of words on either side of the matched word
+        # Potentially useful if one wants to train a model on small text chunks, and convolve this model over a large hetergenous
+        # text response (like a survey response with many topics)
         out_df = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'text'])
         # setup spacy matcher
         matcher = Matcher(self.nlp.vocab)

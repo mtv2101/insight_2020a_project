@@ -7,6 +7,7 @@ import time
 
 from dash_app.word_match import regex_matcher
 from dash_app.embed import embeddings
+from dash_app import load_text
 
 
 ######################################
@@ -114,9 +115,11 @@ def main(run_regex=True, do_hand_scoring=False, num_matches=-1):
     model = 'en_core_web_sm'  # only minimal model needed
     nlp = spacy.load(model)
 
-    embeds = embeddings()
-    embeds.load_unlabeled_data()
-    df = embeds.ul_df # get unlabeled dataframe
+    #embeds = embeddings()
+    #embeds.load_unlabeled_data()
+    #df = embeds.ul_df # get unlabeled dataframe
+
+    df = load_text.load_context_free_data()
 
     if run_regex:
         df = regex_find_topics(df, nlp, num_matches)

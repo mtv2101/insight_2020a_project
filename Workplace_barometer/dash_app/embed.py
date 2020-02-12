@@ -1,13 +1,7 @@
 
 import numpy as np
-import pandas as pd
-import spacy
-
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-
+from sklearn.feature_extraction.text import TfidfVectorizer
 from spacy_transformers import TransformersLanguage, TransformersWordPiecer, TransformersTok2Vec
-
-from dash_app.document import survey_doc
 
 
 ##############################
@@ -39,47 +33,6 @@ class embeddings(object):
 
         self.question = question
         self.model = model
-
-
-    def load_unlabeled_data(self):
-
-        paths = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2017 to mid 2018 comments.csv',
-                 '~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2018 to mid 2019 comments.csv']
-        #paths = ['AI_data/2017_2018_comments.csv',
-        #         'AI_data/2018_2019_comments.csv']
-
-        self.q1_df = pd.DataFrame()
-        self.q2_df = pd.DataFrame()
-        for data_path in paths:
-            data = survey_doc(data_path)
-            data.clean_unlabelled_data()
-            data_q1 = data.df[(data.df['QID']==61) | (data.df['QID']=='Unique / Unusual')]
-            self.q1_df = self.q1_df.append(data_q1, ignore_index=True)
-            data_q2 = data.df[(data.df['QID']==62) | (data.df['QID']=='One Change')]
-            self.q2_df = self.q2_df.append(data_q2, ignore_index=True)
-
-        self.ul_df = self.q1_df.append(self.q2_df, ignore_index=True)
-
-        return self.ul_df
-
-    def load_regex_labeled_data(self):
-        #data_path = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scored_df.pkl']
-        data_path = ['AI_data/regex_scored_df.pkl']
-        labeled_data = survey_doc(data_path[0])
-        labeled_data.clean_regex_labelled_data()
-        self.l_df = labeled_data.df
-        #self.l_data_q1 = labeled_data.df[labeled_data.df['QID'] == 61]
-        #self.l_data_q2 = labeled_data.df[labeled_data.df['QID'] == 62]
-
-        #self.l_df = self.l_data_q1.append(self.l_data_q2, ignore_index=True)
-
-        return self.l_df
-
-    def load_hand_labeled_data(self):
-        #data_path = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_scored_df.pkl']
-        data_path  =['AI_data/hand_scored_df.pkl']
-        self.l_df = pd.read_pickle(data_path[0])
-        return self.l_df
 
 
     def embed_data(self):
