@@ -37,7 +37,7 @@ def main():
 
 def load_models():
     # expected input is a list of sklearn models, as output from tri_training.py
-    model_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/dash_app/tri_train_models_disagree_20200210-132630.pkl'
+    model_path = '/Workplace_barometer/output/tri_train_models_disagree_20200210-132630.pkl'
     models = pd.read_pickle(model_path)
     return models
 
@@ -64,7 +64,7 @@ def get_classes():
 
 def load_embeddings():
 
-    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/unlabelled_bert_embeddings.npy'
+    path = '/Workplace_barometer/output/unlabelled_bert_embeddings.npy'
     embeddings = np.load(path)
     embeddings = pca_reduce(embeddings)
 
@@ -80,8 +80,8 @@ def pca_reduce(X):
 
 def load_ground_truth():
 
-    #gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/hand_scored_df.pkl'
-    gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/regex_scores_20200206-221204.pkl'
+    #gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_scored_df.pkl'
+    gt_path = '/Workplace_barometer/output/regex_scores_20200206-221204.pkl'
     gt = pd.read_pickle(gt_path)
 
     # gt df contains more than one-hot labels, get just there

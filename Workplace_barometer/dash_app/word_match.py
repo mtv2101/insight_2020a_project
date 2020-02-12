@@ -161,7 +161,7 @@ class regex_matcher(object):
                             out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'context_span': context_span, 'text':doc.text}
                         else:
                             out_dict = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'text'])
-                        # for eatch match append the results, unless there was an error else append ''
+                        # for eatch match append the output, unless there was an error else append ''
                         out_df = out_df.append(out_dict, ignore_index=True)
         return out_df
 
