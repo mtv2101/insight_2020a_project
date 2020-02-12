@@ -1,5 +1,5 @@
 import pandas as pd
-from dash_app.document import survey_doc
+from document import survey_doc
 
 ###############################
 # different data loaders used throughout the package
@@ -11,7 +11,8 @@ def load_context_free_data():
 
     path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/data_20200212.csv'
     data = survey_doc(path, header=0)
-    return data
+    data.clean_context_free_data()
+    return data.df
 
 
 def load_unlabeled_data():
