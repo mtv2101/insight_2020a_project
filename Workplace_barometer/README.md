@@ -1,25 +1,23 @@
-### The WorkPlace Barometer
+# The WorkPlace Barometer
 
 Matt Valley
 <br>Insight Data Science Demo project, cohort 2020A
 <br>Seattle WA
 
-###
 
-## Getting Started
+### Getting Started
 
 This is not a software package, and has no setup.py
 The python scripts within should be considered works-in-progress.
 
 ### Prerequisites
-Major dependencies are:
-Spacy <br>
-scikit-learn<br>
-pandas<br>
-skmultilearn (optional)<br>
-dash<br>
-flask
-
+Major dependencies are:<br>
+*spaCy* <br>
+*scikit-learn*<br>
+*pandas*<br>
+*skmultilearn* (optional)<br>
+*dash*<br>
+*flask*
 
 ### Overview
 <p>The Workplace Barometer is a tool that sorts text by into one or many pre-specified topics.
@@ -38,7 +36,7 @@ using regular-expression matching again using a small library of hand-selected t
 a method to label new data using the consensus of three different classifiers.</p>
 
 <p> refs:<br>
-[original paper:](https://ieeexplore.ieee.org/document/1512038/)<br>
-[recent SOA implementation](https://arxiv.org/abs/1804.09530)</p>
+Here is the **[original paper:](https://ieeexplore.ieee.org/document/1512038/)**<br>
+and a **[recent SOA implementation:](https://arxiv.org/abs/1804.09530)**</p>
 
 
