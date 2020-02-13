@@ -17,10 +17,10 @@ def load_context_free_data():
 
 def load_unlabeled_data():
 
-    paths = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2017 to mid 2018 comments.csv',
-             '~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2018 to mid 2019 comments.csv']
-    # paths = ['AI_data/2017_2018_comments.csv',
-    #         'AI_data/2018_2019_comments.csv']
+    #paths = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2017 to mid 2018 comments.csv',
+    #         '~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2018 to mid 2019 comments.csv']
+    paths = ['data/2017_2018_comments.csv',
+             'data/2018_2019_comments.csv']
 
     q1_df = pd.DataFrame()
     q2_df = pd.DataFrame()
@@ -36,6 +36,7 @@ def load_unlabeled_data():
 
     return ul_df
 
+
 def load_regex_labeled_data():
     # data_path = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scored_df.pkl']
     data_path = ['AI_data/regex_scored_df.pkl']
@@ -48,6 +49,7 @@ def load_regex_labeled_data():
     # l_df = l_data_q1.append(l_data_q2, ignore_index=True)
 
     return l_df
+
 
 def load_hand_labeled_data():
     # data_path = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_scored_df.pkl']
