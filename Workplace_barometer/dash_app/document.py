@@ -47,6 +47,7 @@ class survey_doc(object):
         self.df = self.df.rename(columns={'Comment': 'text'})
         self.df = self.df[self.df['text'].apply(lambda x: isinstance(x, str))] # cut out non-string entries
         self.df = self.df[self.df['text'].apply(lambda x: self.filter_str_length(x))] # cut out strings less than 2 characters long
+        self.df = self.df[self.df['text'].apply(lambda x: not x.isspace())] # sometimes they just hold down the spacebar
 
 
     def clean_unlabelled_data(self):

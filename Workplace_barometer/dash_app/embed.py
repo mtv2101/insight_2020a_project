@@ -98,7 +98,6 @@ class embeddings(object):
     def bert(self, df):
 
         model = 'bert-base-uncased'
-        #nlp = spacy.load(model)
 
         nlp = TransformersLanguage(trf_name=model, meta={"lang": "en"})
         sentencizer = nlp.create_pipe("sentencizer")
@@ -110,9 +109,11 @@ class embeddings(object):
         for comment in df.text:
             doc = nlp(comment)
             tensor = doc._.trf_last_hidden_state
-            print(tensor.shape)
-            tensors.append(tensor.mean(axis=0))
+            m = tensor.mean(axis=0)
+            tensors.append(m)
         tensors = np.array(tensors)
+
+        assert(len(df) == tensors.shape[0])
 
         np.save('new_data_bert_embeddings.npy', tensors)
 
