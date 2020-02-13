@@ -2,6 +2,7 @@
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from spacy_transformers import TransformersLanguage, TransformersWordPiecer, TransformersTok2Vec
+from load_text import load_context_free_data, load_unlabeled_data, load_regex_labeled_data
 
 
 ##############################
@@ -39,10 +40,10 @@ class embeddings(object):
         models = ['tfidf', 'tfidf_by_class', 'bert']
         assert self.model in models
 
-        #self.load_unlabeled_data()
-        #self.data = self.load_unlabeled_data()
-        #self.data = self.load_regex_labeled_data()
-        self.data = self.load_hand_labeled_data()
+        #self.data = load_unlabeled_data()
+        #self.data = load_regex_labeled_data()
+        #self.data = load_hand_labeled_data()
+        self.data = load_context_free_data()
 
         if self.model == 'tfidf_by_class':
             return self.tfidf_by_class(self.data)
@@ -105,18 +106,14 @@ class embeddings(object):
         nlp.add_pipe(TransformersWordPiecer.from_pretrained(nlp.vocab, model))
         nlp.add_pipe(TransformersTok2Vec.from_pretrained(nlp.vocab, model))
 
-        #data = [sent for sent in df.text]
-        #docs = [nlp(d) for d in data]
         tensors = []
-        #print(len(df))
         for comment in df.text:
             doc = nlp(comment)
-            #tensor = np.array(doc._.trf_last_hidden_state)
             tensor = doc._.trf_last_hidden_state
             print(tensor.shape)
-            tensors.append(tensor.sum(axis=0))
+            tensors.append(tensor.mean(axis=0))
         tensors = np.array(tensors)
 
-        np.save('hand_labelled_bert_embeddings.npy', tensors)
+        np.save('new_data_bert_embeddings.npy', tensors)
 
         return tensors
