@@ -45,41 +45,33 @@ def main(data_source='local'):
         #hl_x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_labelled_bert_embeddings.npy'
 
     ul_df = load_unlabeled_data()
-    X_train, y_train, X_ul, ul_df = load_regex_data(x_path, y_path, ul_df)
+    X, y, ul_df = load_regex_data(x_path, y_path, ul_df)
     #X_test, y_test = load_hand_labelled_data(hl_x_path, hl_y_path)
     #X_train, y_train = load_hand_labelled_data(hl_x_path, hl_y_path)
-    #print('X_matrix is : ' + str(X_mat.shape))
-    X_train, X_ul = pca_reduce(X_train, X_ul)
+
+    X = pca_reduce(X)
 
     models = setup_pipes()
-    print(ul_df.head(50))
-    #tri_fit(X_train, y_train, X_ul, models)
-    #tri_fold_skf(X_train, y_train, X_ul, models)
+
+    tri_fit(X, y, ul_df, models)
+    #tri_fold_skf(X, y, ul_df, models)
 
 
 def load_regex_data(x_path, y_path, ul_df):
 
     ydf = pd.read_pickle(y_path)
+    # given ul_df is our master df of text and labels, merge df containing regex labels
+    ul_df = ul_df.merge(ydf, right_on='comment_idx', how='left', left_index=True)
+    ul_df = ul_df.reset_index()
 
     classes = get_classes()
-    ydf_onehot = ydf[ydf.columns.intersection(classes)]
-    ydf_onehot.keys()
-    y = ydf_onehot.to_numpy()
+    ul_df_onehot = ul_df[ul_df.columns.intersection(classes)]
+    ul_df_onehot.keys()
+    y = ul_df_onehot.to_numpy()
 
-    X_mat = np.load(x_path)
+    X = np.load(x_path)
 
-    # get X vectors that represent y data
-    comment_idx = ydf['comment_idx']
-    comment_idx = [int(c) for c in comment_idx if ~np.isnan(c)]
-    X = X_mat[comment_idx,:]
-    ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
-    X_ul = X_mat[ul_idx]
-
-    # given ul_df is our master df of text and labels, add regex labels.
-    ydf_tomerge = ydf[['comment_idx', 'labels']]
-    ul_df = ul_df.merge(ydf_tomerge, right_on='comment_idx', how='left', left_index=True)
-
-    return X, y, X_ul, ul_df
+    return X, y, ul_df
 
 
 def load_hand_labelled_data(hl_x_path, hl_y_path):
@@ -143,20 +135,17 @@ def setup_pipes():
                                                                               algorithm='ball_tree'),
                                                            n_jobs=-1))])
 
-    models = {'SVC':SVC, 'RForest':RForest, 'MLP':MLP}
+    #models = {'SVC':SVC, 'RForest':RForest, 'MLP':MLP}
+    models = {'SVC': SVC, 'LogReg': LogReg, 'LogReg2': LogReg}
     return models
 
 
-def pca_reduce(X_train, X_ul):
+def pca_reduce(X):
 
-    X_merge = np.concatenate([X_train, X_ul], axis=0)
     pca = PCA(n_components=20)
-    X_xform = pca.fit_transform(X_merge)
+    X = pca.fit_transform(X)
 
-    X_train = X_xform[:X_train.shape[0],:]
-    X_ul = X_xform[X_train.shape[0]:,:]
-
-    return X_train, X_ul
+    return X
 
 
 def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
@@ -184,7 +173,14 @@ def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
     return predictions, acc, prec, prec_all, rec
 
 
-def find_consensus(preds, training_dat, training_labels, X_ul, training_method='classic'):
+def add_label(ul_df, idx, hot_lab):
+    classes = get_classes()
+    labels = [classes[idx] for idx,i in enumerate(hot_lab) if i==1]
+    ul_df['labels'].iloc[idx] = labels
+    return ul_df
+
+
+def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled_idx, training_method='classic'):
 
     X0, X1, X2 = training_dat
     y0, y1, y2 = training_labels
@@ -196,10 +192,12 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
     p1, p2, p3 = preds
     print('unlabeled data shape: ' + str(X_ul.shape))
     ensemble = np.stack([p1, p2, p3], axis=0).astype('int16')
-    #print(ensemble.shape)
 
-    X_ul_delete_list = []
-    for i in range(ensemble.shape[1]):
+    print(len(unlabelled_idx), ensemble.shape)
+    assert len(unlabelled_idx) == ensemble.shape[1]
+
+    # unlabelled index gives the indices within ul_df where label==np.nan
+    for i,idx in enumerate(unlabelled_idx):
         if training_method == 'disagreement':
             # if model 0 is the odd-one-out add labels to its training set
             if (ensemble[0, i, :] != ensemble[1, i, :]).any() and (
@@ -207,24 +205,30 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
                     ensemble[1, i, :] == ensemble[2, i, :]).all():
                 #print(ensemble[0, i, :], ensemble[1, i, :])
                 X0 = np.vstack([X0, X_ul[i, :]])
-                X_ul_delete_list.append(i)
                 y0 = np.vstack([y0, ensemble[1, i, :].squeeze()]) # append a correct label
+                X_ul = np.delete(X_ul, i, axis=0)
+                del unlabelled_idx[i]
+                ul_df = add_label(ul_df, idx, ensemble[1, i, :].squeeze())
 
             # if model 1 is the odd-one-out add labels to its training set
             elif (ensemble[0, i, :] != ensemble[1, i, :]).any() and (
                     ensemble[1, i, :] != ensemble[2, i, :]).any() and (
                     ensemble[0, i, :] == ensemble[2, i, :]).all():
                 X1 = np.vstack([X1, X_ul[i, :]])
-                X_ul_delete_list.append(i)
                 y1 = np.vstack([y1, ensemble[0, i, :].squeeze()])
+                X_ul = np.delete(X_ul, i, axis=0)
+                del unlabelled_idx[i]
+                ul_df = add_label(ul_df, idx, ensemble[0, i, :].squeeze())
 
             # if model 2 is the odd-one-out add labels to its training set
             elif (ensemble[2, i, :] != ensemble[1, i, :]).any() and (
                     ensemble[2, i, :] != ensemble[0, i, :]).any() and (
                     ensemble[1, i, :] == ensemble[0, i, :]).all():
                 X2 = np.vstack([X2, X_ul[i, :]])
-                X_ul_delete_list.append(i)
                 y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
+                X_ul = np.delete(X_ul, i, axis=0)
+                del unlabelled_idx[i]
+                ul_df = add_label(ul_df, idx, ensemble[1, i, :].squeeze())
 
         elif training_method == 'classic':
             # if all models agree, (and predictions are not zero?), add label to all training sets
@@ -234,71 +238,41 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
                 X0 = np.vstack([X0, X_ul[i, :]])
                 X1 = np.vstack([X1, X_ul[i, :]])
                 X2 = np.vstack([X2, X_ul[i, :]])
-                X_ul_delete_list.append(i)
                 y0 = np.vstack([y0, ensemble[1, i, :].squeeze()])
                 y1 = np.vstack([y1, ensemble[1, i, :].squeeze()])
                 y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
-
-    X_ul = np.delete(X_ul, X_ul_delete_list, axis=0)
+                X_ul = np.delete(X_ul, i, axis=0)
+                del unlabelled_idx[i]
+                ul_df = add_label(ul_df, idx, ensemble[1, i, :].squeeze())
 
     training_dat = [X0, X1, X2]
     training_labels = [y0, y1, y2]
 
-    return training_dat, training_labels, X_ul
+    return training_dat, training_labels, X_ul, unlabelled_idx, ul_df
 
 
-def tri_fold_skf(X, y, X_ul, models, save_output=True):
-
-    #X = X[:10000,:]
-    #y = y[:10000,:]
-
-    X_train, y_train, X_test, y_test = iterative_train_test_split(X, y, test_size = 0.2)
-
-    print('training data size = ' + str(X_train.shape))
-    print('testing data size = ' + str(X_test.shape))
-    print('training target shape = ' + str(y_train.shape))
-    print('testing target shape = ' + str(y_test.shape))
-    print('unlabeled data size = ' + str(X_ul.shape))
-
-    # initialize three copies of training data before accumulating model-specific examples
-    training_dat = [X_train, X_train, X_train]
-    training_labels = [y_train, y_train, y_train]
-
-    model_metrics = [{model: {'acc':[], 'prec':[], 'prec_all':[], 'rec':[], 'train_size':[]}} for model in models.keys()]
-
-    num_iters = 15
-
-    for n in range(num_iters):
-
-        preds = []
-        for i, (m, model) in enumerate(models.items()):
-            print(m)
-            X_train = training_dat[i]
-            y_train = training_labels[i]
-            pred, acc, prec, prec_all, rec = generic_fit(model, X_train, y_train, X_test, y_test, X_ul)
-            preds.append(pred)
-            model_metrics[i][m]['acc'].append(acc)
-            model_metrics[i][m]['prec'].append(prec)
-            model_metrics[i][m]['prec_all'].append(prec_all)
-            model_metrics[i][m]['rec'].append(rec)
-            model_metrics[i][m]['train_size'].append(X_train.shape[0])
-            print('class frequency: ' + str(np.mean(pred, axis=0)))
-
-        training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
-
-    if save_output:
-        save_things(model_metrics, models, preds)
-
-
-def tri_fit(X, y, X_ul, models, save_output=True):
+def tri_fit(X, y, ul_df, models, save_output=True, skf=False):
 
     num_iters = 20
 
-    #X = X[:10000,:]
-    #y = y[:10000,:]
+    print('X size = ' + str(X.shape))
+    print('y size = ' + str(y.shape))
 
-    # optionally overwrite test data provided externally and test internally on a split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
+    # get X vectors that represent y data (labelled X)
+    unlabelled_idx = [i for i, l in enumerate(ul_df['labels']) if isinstance(l, float)]
+    labelled_idx = [i for i, l in enumerate(ul_df['labels']) if not isinstance(l, float)]
+
+    X_l = X[labelled_idx,:]
+    X_ul = X[unlabelled_idx,:]
+
+    # y contains nans for unlabelled entries, remove these before training
+    y_l = y[labelled_idx,:]
+
+    if skf:
+        X_train, y_train, X_test, y_test = iterative_train_test_split(X_l, y_l, test_size=0.2)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(X_l, y_l, random_state=42,test_size=0.2)
+
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_test.shape))
     print('training target shape = ' + str(y_train.shape))
@@ -327,13 +301,13 @@ def tri_fit(X, y, X_ul, models, save_output=True):
             model_metrics[i][m]['train_size'].append(X_train.shape[0])
             print('class frequency: ' + str(np.mean(pred, axis=0)))
 
-        training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
+        training_dat, training_labels, X_ul, ul_df, unlabelled_idx = find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled_idx)
 
     if save_output:
-        save_things(model_metrics, models, preds)
+        save_things(model_metrics, models, ul_df)
 
 
-def save_things(model_metrics, models, preds):
+def save_things(model_metrics, models, ul_df):
     timestamp = time.strftime("%Y%m%d-%H%M%S")
 
     metric_path = "tri_train_metrics_disagree_" + str(timestamp) + '.pkl'
@@ -346,9 +320,9 @@ def save_things(model_metrics, models, preds):
     pickle.dump(models, pickle_out)
     pickle_out.close()
 
-    predictions_path = "tri_train_predictions_disagree_" + str(timestamp) + '.pkl'
+    predictions_path = "all_predictions_" + str(timestamp) + '.pkl'
     pickle_out = open(predictions_path, "wb")
-    pickle.dump(preds, pickle_out)
+    pickle.dump(ul_df, pickle_out)
     pickle_out.close()
 
 
