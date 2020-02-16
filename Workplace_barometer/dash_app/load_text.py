@@ -17,10 +17,10 @@ def load_context_free_data():
 
 def load_unlabeled_data():
 
-    paths = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2017 to mid 2018 comments.csv',
-             '~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2018 to mid 2019 comments.csv']
-    #paths = ['data/2017_2018_comments.csv',
-    #         'data/2018_2019_comments.csv']
+    #paths = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2017 to mid 2018 comments.csv',
+    #         '~/PycharmProjects/insight_2020a_project/Workplace_barometer/AI_survey_data/2018 to mid 2019 comments.csv']
+    paths = ['data/2017_2018_comments.csv',
+             'data/2018_2019_comments.csv']
 
     q1_df = pd.DataFrame()
     q2_df = pd.DataFrame()
