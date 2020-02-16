@@ -121,8 +121,8 @@ class regex_matcher(object):
                                                 {"resort": "[Rr](resort)"},
                                                 {"physical plant": "[Pp](hysical.?plant)"}#
                                                 ],
-                  'N/A':                        [{'N/A': "[Nn](.?)[Aa]"},
-                                                {'No comment': "[Nn](o.?)[Cc](omment)"}]
+                  #'N/A':                        [{'N/A': "[Nn](.?)[Aa]"},
+                  #                              {'No comment': "[Nn](o.?)[Cc](omment)"}]
                       }
 
     def get_match_context(self, matches, doc):
