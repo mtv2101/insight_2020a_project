@@ -41,10 +41,10 @@ class embeddings(object):
         models = ['tfidf', 'tfidf_by_class', 'bert']
         assert self.model in models
 
-        self.data = load_unlabeled_data()
+        #self.data = load_unlabeled_data()
         #self.data = load_regex_labeled_data()
         #self.data = load_hand_labeled_data()
-        #self.data = load_context_free_data()
+        self.data = load_context_free_data()
 
         if self.model == 'tfidf_by_class':
             return self.tfidf_by_class(self.data)

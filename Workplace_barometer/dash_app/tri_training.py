@@ -23,6 +23,7 @@ from sklearn.decomposition import PCA
 from skmultilearn.model_selection import iterative_train_test_split
 
 from dash_app.predict_and_plot import get_classes
+from dash_app.load_text import load_unlabeled_data
 
 ############################################
 # Matt Valley, Jan 2020
@@ -38,25 +39,25 @@ def main(data_source='local'):
         hl_x_path = 'hand_labelled_bert_embeddings.npy'
 
     elif data_source == 'local':
-        y_path = '/Workplace_barometer/output/regex_scores_20200206-221204.pkl'
-        x_path = '/Workplace_barometer/output/unlabelled_bert_embeddings.npy'
-        hl_y_path = '/Workplace_barometer/output/hand_scored_df.pkl'
-        hl_x_path = '/Workplace_barometer/output/hand_labelled_bert_embeddings.npy'
+        y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200216-033348.pkl'
+        x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/bert_mean_embeddings20200216-044222.npy'
+        #hl_y_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_scored_df.pkl'
+        #hl_x_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_labelled_bert_embeddings.npy'
 
-    X_train, y_train, X_ul, ydf = load_regex_data(x_path, y_path)
-    X_ul = get_unlabeled_data(x_path)
+    ul_df = load_unlabeled_data()
+    X_train, y_train, X_ul, ul_df = load_regex_data(x_path, y_path, ul_df)
     #X_test, y_test = load_hand_labelled_data(hl_x_path, hl_y_path)
     #X_train, y_train = load_hand_labelled_data(hl_x_path, hl_y_path)
-
+    #print('X_matrix is : ' + str(X_mat.shape))
     X_train, X_ul = pca_reduce(X_train, X_ul)
 
     models = setup_pipes()
-
+    print(ul_df.head(50))
     #tri_fit(X_train, y_train, X_ul, models)
-    tri_fold_skf(X_train, y_train, X_ul, models)
+    #tri_fold_skf(X_train, y_train, X_ul, models)
 
 
-def load_regex_data(x_path, y_path):
+def load_regex_data(x_path, y_path, ul_df):
 
     ydf = pd.read_pickle(y_path)
 
@@ -66,23 +67,19 @@ def load_regex_data(x_path, y_path):
     y = ydf_onehot.to_numpy()
 
     X_mat = np.load(x_path)
+
     # get X vectors that represent y data
     comment_idx = ydf['comment_idx']
     comment_idx = [int(c) for c in comment_idx if ~np.isnan(c)]
-    print(max(comment_idx), X_mat.shape)
     X = X_mat[comment_idx,:]
-    print(X.shape)
     ul_idx = [i for i in range(X_mat.shape[0]) if i not in ydf['comment_idx'].values]
     X_ul = X_mat[ul_idx]
 
-    return X, y, X_ul, ydf
+    # given ul_df is our master df of text and labels, add regex labels.
+    ydf_tomerge = ydf[['comment_idx', 'labels']]
+    ul_df = ul_df.merge(ydf_tomerge, right_on='comment_idx', how='left', left_index=True)
 
-
-def get_unlabeled_data(ul_path):
-
-    X_mat = np.load(ul_path)
-
-    return X_mat
+    return X, y, X_ul, ul_df
 
 
 def load_hand_labelled_data(hl_x_path, hl_y_path):
@@ -105,15 +102,15 @@ def setup_pipes():
                                                                            solver='lbfgs',
                                                                            multi_class='ovr',
                                                                            C=0.001,
-                                                                           class_weight=None,
-                                                                           #random_state=42,
+                                                                           class_weight='balanced',
+                                                                           random_state=42,
                                                                            max_iter=1000,
                                                                            warm_start=True
                                                                       ),
                                                             n_jobs=-1))])
 
     SVC = Pipeline([('SVC', OneVsRestClassifier(LinearSVC(multi_class='ovr',
-                                                   C=0.001,
+                                                   C=0.0001,
                                                    class_weight='balanced'),
                                                 n_jobs=-1))])
 
@@ -122,20 +119,22 @@ def setup_pipes():
                                                             n_jobs=-1))])
 
     RForest = Pipeline([('RForest', OneVsRestClassifier(RandomForestClassifier(n_estimators=100,
-                                                                           #random_state=42,
+                                                                           random_state=42,
                                                                            max_depth=5,
                                                                            min_samples_leaf=3,
                                                                            class_weight='balanced_subsample'
                                                                            ),
                                                             n_jobs=-1))])
 
-    MLP = Pipeline([('MLP', OneVsRestClassifier(MLPClassifier(tol=1e-3,
-                                                              alpha=0.0001,
-                                                              max_iter=1000,
-                                                              activation='logistic'),
+    MLP = Pipeline([('MLP', OneVsRestClassifier(MLPClassifier(hidden_layer_sizes=(100),
+                                                                tol=1e-4,
+                                                                alpha=0.0001,
+                                                                max_iter=1000,
+                                                                activation='logistic'),
                                                             n_jobs=-1))])
 
-    GP = Pipeline([('GP', OneVsRestClassifier(GaussianProcessClassifier(max_iter_predict = 1000, multi_class = 'one_vs_rest'),
+    GP = Pipeline([('GP', OneVsRestClassifier(GaussianProcessClassifier(max_iter_predict = 1000,
+                                                                        multi_class = 'one_vs_rest'),
                                                      n_jobs=-1))])
 
     KNN = Pipeline([('KNN', OneVsRestClassifier(KNeighborsClassifier(n_neighbors=5,
@@ -144,7 +143,7 @@ def setup_pipes():
                                                                               algorithm='ball_tree'),
                                                            n_jobs=-1))])
 
-    models = {'LogReg':LogReg, 'RForest':RForest, 'MLP':MLP}
+    models = {'SVC':SVC, 'RForest':RForest, 'MLP':MLP}
     return models
 
 
@@ -228,7 +227,7 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
                 y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
 
         elif training_method == 'classic':
-            # if all models agree, and predictions are not zero, add label to all training sets
+            # if all models agree, (and predictions are not zero?), add label to all training sets
             if (ensemble[0, i, :] == ensemble[1, i, :]).all() and (
                     ensemble[0, i, :] == ensemble[2, i, :]).all() and (
                     (ensemble[0, i, :]).any() == 1):
@@ -250,10 +249,10 @@ def find_consensus(preds, training_dat, training_labels, X_ul, training_method='
 
 def tri_fold_skf(X, y, X_ul, models, save_output=True):
 
-    X = X[:10000,:]
-    y = y[:10000,:]
+    #X = X[:10000,:]
+    #y = y[:10000,:]
 
-    X_train, y_train, X_test, y_test = iterative_train_test_split(X, y, test_size = 0.5)
+    X_train, y_train, X_test, y_test = iterative_train_test_split(X, y, test_size = 0.2)
 
     print('training data size = ' + str(X_train.shape))
     print('testing data size = ' + str(X_test.shape))
@@ -267,7 +266,7 @@ def tri_fold_skf(X, y, X_ul, models, save_output=True):
 
     model_metrics = [{model: {'acc':[], 'prec':[], 'prec_all':[], 'rec':[], 'train_size':[]}} for model in models.keys()]
 
-    num_iters = 3
+    num_iters = 15
 
     for n in range(num_iters):
 
@@ -293,10 +292,10 @@ def tri_fold_skf(X, y, X_ul, models, save_output=True):
 
 def tri_fit(X, y, X_ul, models, save_output=True):
 
-    num_iters = 15
+    num_iters = 20
 
-    X = X[:10000,:]
-    y = y[:10000,:]
+    #X = X[:10000,:]
+    #y = y[:10000,:]
 
     # optionally overwrite test data provided externally and test internally on a split
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42,test_size=0.2)
@@ -327,8 +326,6 @@ def tri_fit(X, y, X_ul, models, save_output=True):
             model_metrics[i][m]['rec'].append(rec)
             model_metrics[i][m]['train_size'].append(X_train.shape[0])
             print('class frequency: ' + str(np.mean(pred, axis=0)))
-            #for e in model.named_steps[m].estimators_:
-                #print(e.coef_)
 
         training_dat, training_labels, X_ul = find_consensus(preds, training_dat, training_labels, X_ul)
 
