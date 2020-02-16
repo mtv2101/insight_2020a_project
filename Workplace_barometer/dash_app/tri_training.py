@@ -22,7 +22,7 @@ from sklearn.decomposition import PCA
 
 from skmultilearn.model_selection import iterative_train_test_split
 
-from predict_and_plot import get_classes
+from dash_app.predict_and_plot import get_classes
 
 ############################################
 # Matt Valley, Jan 2020

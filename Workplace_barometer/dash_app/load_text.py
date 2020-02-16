@@ -1,5 +1,5 @@
 import pandas as pd
-from document import survey_doc
+from dash_app.document import survey_doc
 
 ###############################
 # different data loaders used throughout the package
@@ -39,7 +39,7 @@ def load_unlabeled_data():
 
 def load_regex_labeled_data():
     # data_path = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scored_df.pkl']
-    data_path = ['AI_data/regex_scored_df.pkl']
+    data_path = ['data/regex_scored_df.pkl']
     labeled_data = survey_doc(data_path[0])
     #labeled_data.clean_regex_labelled_data()
     l_df = labeled_data.df

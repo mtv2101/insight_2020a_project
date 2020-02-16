@@ -3,7 +3,7 @@ import numpy as np
 import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 from spacy_transformers import TransformersLanguage, TransformersWordPiecer, TransformersTok2Vec
-from load_text import load_context_free_data, load_unlabeled_data, load_regex_labeled_data
+from dash_app.load_text import load_context_free_data, load_unlabeled_data, load_regex_labeled_data
 
 
 ##############################
