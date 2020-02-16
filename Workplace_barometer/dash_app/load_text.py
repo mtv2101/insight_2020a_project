@@ -41,7 +41,7 @@ def load_regex_labeled_data():
     # data_path = ['~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scored_df.pkl']
     data_path = ['AI_data/regex_scored_df.pkl']
     labeled_data = survey_doc(data_path[0])
-    labeled_data.clean_regex_labelled_data()
+    #labeled_data.clean_regex_labelled_data()
     l_df = labeled_data.df
     # l_data_q1 = labeled_data.df[labeled_data.df['QID'] == 61]
     # l_data_q2 = labeled_data.df[labeled_data.df['QID'] == 62]

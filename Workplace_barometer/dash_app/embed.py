@@ -1,5 +1,6 @@
 
 import numpy as np
+import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 from spacy_transformers import TransformersLanguage, TransformersWordPiecer, TransformersTok2Vec
 from load_text import load_context_free_data, load_unlabeled_data, load_regex_labeled_data
@@ -41,9 +42,9 @@ class embeddings(object):
         assert self.model in models
 
         #self.data = load_unlabeled_data()
-        #self.data = load_regex_labeled_data()
+        self.data = load_regex_labeled_data()
         #self.data = load_hand_labeled_data()
-        self.data = load_context_free_data()
+        #self.data = load_context_free_data()
 
         if self.model == 'tfidf_by_class':
             return self.tfidf_by_class(self.data)
@@ -109,12 +110,13 @@ class embeddings(object):
         for comment in df.text:
             doc = nlp(comment)
             tensor = doc._.trf_last_hidden_state
-            m = tensor.sum(axis=0)
+            m = tensor.mean(axis=0)
             tensors.append(m)
         tensors = np.array(tensors)
 
         assert(len(df) == tensors.shape[0])
 
-        np.save('new_data_bert_sum_embeddings.npy', tensors)
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        np.save('bert_mean_embeddings' + str(timestamp) + '.npy', tensors)
 
         return tensors

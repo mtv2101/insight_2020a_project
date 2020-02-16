@@ -75,6 +75,7 @@ class survey_doc(object):
 
 
     def clean_regex_labelled_data(self):
+        # depreciated - redundant funcitonality within "topic_scoring_tool.regex_find_topics"
         self.df = self.df.dropna(how='any')
 
         # merge rows by comment index, one-hot encode classes

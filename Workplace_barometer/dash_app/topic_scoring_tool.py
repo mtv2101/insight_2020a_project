@@ -112,8 +112,8 @@ def main(run_regex=True, do_hand_scoring=False, num_matches=-1):
     #embeds = embeddings()
     #embeds.load_unlabeled_data()
     #df = embeds.ul_df # get unlabeled dataframe
-    df = load_text.load_unlabeled_data()
-    #df = load_text.load_context_free_data()
+    #df = load_text.load_unlabeled_data()
+    df = load_text.load_context_free_data()
 
     if run_regex:
         df = regex_find_topics(df, nlp, num_matches)

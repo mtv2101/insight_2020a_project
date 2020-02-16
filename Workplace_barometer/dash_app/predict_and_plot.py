@@ -58,7 +58,7 @@ def get_classes():
                'Recognition',
                'Learning & Development',
                'Purpose',
-               'Commmute',
+               'Commute',
                'Staffing level',
                'Communication',
                'Quality of care',
@@ -86,9 +86,7 @@ def pca_reduce(X):
 
 def load_ground_truth():
 
-    #gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_scored_df.pkl'
-    #gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200206-221204.pkl'
-    gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_16cat_20200213-094422.pkl'
+    gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200215-165137.pkl'
     gt = pd.read_pickle(gt_path)
 
     # gt df contains more than one-hot labels, get just there

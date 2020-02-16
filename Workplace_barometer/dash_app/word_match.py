@@ -149,7 +149,6 @@ class regex_matcher(object):
             for rule in rules:
                 for key,regex in rule.items():
                     for match in re.finditer(regex, doc.text):
-                        print(match[0], regex, doc.text)
                         if match:
                             out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match[0], 'text':doc.text}
                         out_df = out_df.append(out_dict, ignore_index=True)
@@ -168,7 +167,6 @@ class regex_matcher(object):
             for rule in rules:
                 for key,regex in rule.items():
                     for match in re.finditer(regex, doc.text):
-                        print(match[0], regex, doc.text)
                         charstart, charend = match.span()
                         span = doc.char_span(charstart, charend)
                         if span is not None:
