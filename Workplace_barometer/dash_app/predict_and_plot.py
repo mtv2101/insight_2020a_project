@@ -26,18 +26,23 @@ def main():
 
     #class_prec = [score_predictions(predictions[m], gt) for m in range(len(models))]
     class_prec = score_predictions(preds_matching_gt, gt)
+    classes, gt_class_counts, uncat_count = get_class_frequency_df(gt)
     class_counts, uncat_count = get_class_frequency_preds(preds_matching_gt)
     all_class_counts, uncat_count = get_class_frequency_preds(predictions)
-    plot_scores(class_prec)
-    plot_scores(class_counts)
-    plot_scores(all_class_counts)
+
+    gt_class_freq = [count/len(gt) for count in gt_class_counts]
+    print(all_class_counts)
+    all_class_freq = [count / len(predictions) for count in all_class_counts]
+    plot_scores(gt_class_freq, 'Topic frequency in survey responses (Regex)', 'Topic Frequency')
+    plot_scores(class_prec, 'Precision by class', 'Precision')
+    plot_scores(all_class_freq, 'Topic frequency in survey responses (tri-train)', 'Topic Frequency')
 
     return predictions, gt, class_prec
 
 
 def load_models():
     # expected input is a list of sklearn models, as output from tri_training.py
-    model_path = '/Workplace_barometer/output/tri_train_models_disagree_20200210-132630.pkl'
+    model_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/tri_train_models_disagree_20200210-132630.pkl'
     models = pd.read_pickle(model_path)
     return models
 
@@ -64,7 +69,8 @@ def get_classes():
 
 def load_embeddings():
 
-    path = '/Workplace_barometer/output/unlabelled_bert_embeddings.npy'
+    #path = '/Workplace_barometer/output/unlabelled_bert_embeddings.npy'
+    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/new_data_bert_sum_embeddings.npy'
     embeddings = np.load(path)
     embeddings = pca_reduce(embeddings)
 
@@ -80,8 +86,9 @@ def pca_reduce(X):
 
 def load_ground_truth():
 
-    #gt_path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_scored_df.pkl'
-    gt_path = '/Workplace_barometer/output/regex_scores_20200206-221204.pkl'
+    #gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/hand_scored_df.pkl'
+    #gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200206-221204.pkl'
+    gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_16cat_20200213-094422.pkl'
     gt = pd.read_pickle(gt_path)
 
     # gt df contains more than one-hot labels, get just there
@@ -140,21 +147,22 @@ def score_predictions(predictions, gt):
     return class_precision
 
 
-def plot_scores(score):
+def plot_scores(score, title, y_title):
 
     classes = get_classes()
 
     fig = go.Figure(data=[
         go.Bar(name='Topic precision', x=classes, y=score)
     ])
-    fig.update_layout(barmode='stack')
+    fig.update_layout(barmode='stack',
+                      title=title,
+                      yaxis_title=y_title)
     fig.show()
 
 
 def get_class_frequency_df(df):
 
     classes = get_classes()
-    print(df.keys())
 
     class_counts = [np.sum(df[c], axis=0) for c in classes]
     uncat_count = len(df) - sum(class_counts)

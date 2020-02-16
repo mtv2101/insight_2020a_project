@@ -10,7 +10,7 @@ from load_text import load_context_free_data, load_unlabeled_data, load_regex_la
 '''
 embed.py takes .csv tables of comment text, 
 or pickled files containing a pandas dataframe formatted 
-using doucment.py.  
+using document.py.  
 
 It embeds the text using tf/idf, or BERT
 where each comment is treated as an independent document. 
@@ -109,12 +109,12 @@ class embeddings(object):
         for comment in df.text:
             doc = nlp(comment)
             tensor = doc._.trf_last_hidden_state
-            m = tensor.mean(axis=0)
+            m = tensor.sum(axis=0)
             tensors.append(m)
         tensors = np.array(tensors)
 
         assert(len(df) == tensors.shape[0])
 
-        np.save('new_data_bert_embeddings.npy', tensors)
+        np.save('new_data_bert_sum_embeddings.npy', tensors)
 
         return tensors

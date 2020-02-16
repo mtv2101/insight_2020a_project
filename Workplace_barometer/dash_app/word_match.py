@@ -36,7 +36,6 @@ class regex_matcher(object):
                                                 {"associate": "[Aa](s.?o.?.?.?te.?)"}, #associate
                                                 {"teammate": "[Tt](eam.?.?.?te.?)"}, #teammate
                                                 {"teamwork": "[Tt](eam.?\work)"}, #teamwork
-                                                {"staff": "[Ss](taf.?.?)"}, #staff
                                                 {"family": "[Ff](amily)"}, #family
                                                 {"community": "[Cc](ommunity)"} #community,
                                                 ],
@@ -83,17 +82,20 @@ class regex_matcher(object):
                                                 {"meaning": "[Mm](eaning)"}, #'meaning',
                                                 {"mission": "[Mm](ission)"}, #'mission'],
                                                 ],
-                  'Commmute':                   [{"commute": "[Cc](om.?ute.?.?)"}, #'commute', commuters
+                  'Commute':                    [{"commute": "[Cc](om.?ute.?.?)"}, #'commute', commuters
                                                 {"drive": "[Dd](riv.?.?.?)"}, #'driving',
                                                 {"location": "[Ll](ocation)"} # location'
                                                 ],
                   'Staffing level':             [{"headcount": "[Hh](ead.?count)"}, #'head-count',
                                                 {"staff": "[Ss](taff.?.?.?)"}, #'staffing',
                                                 {"hire": "[Hh](ir.?.?.?)"}, #'hire',
-                                                {"employ": "[Ee](mploy.?.?.?.?)"}, #'employment'],
+                                                {"employ": "[Ee](mploy.?.?.?.?)"},
+                                                {"turnover": "[Tt](urnover)"}#'employment'],
                                                 ],
                   'Communication':              [{"listen": "[Ll](is.?en)"}, #'listen',
-                                                {"communicate": "[Cc](om.?un.?cat.?.?.?.?)"} #'communicate, communication
+                                                {"communicate": "[Cc](om.?un.?cat.?.?.?.?)"}, #communicate, communication
+                                                {'meetings': "[Mm](eetings)"},
+                                                {'tone deaf': '[Tt](one.?deaf)'}
                                                 ],
                   'Quality of care':            [{'care': "[Cc](are.?)"},
                                                 {'compassion': "[Cc](compassion.?.?.?)"}#compassionate
@@ -119,9 +121,7 @@ class regex_matcher(object):
                                                 {"resort": "[Rr](resort)"},
                                                 {"physical plant": "[Pp](hysical.?plant)"}#
                                                 ],
-                  'N/A':                        [{'Nothing': "[Nn](othing)"},
-                                                {'None': "[Nn](one)"},
-                                                {'N/A': "[Nn](.?)[Aa]"},
+                  'N/A':                        [{'N/A': "[Nn](.?)[Aa]"},
                                                 {'No comment': "[Nn](o.?)[Cc](omment)"}]
                       }
 
@@ -144,14 +144,14 @@ class regex_matcher(object):
 
     def match_topics(self, idx, doc):
         out_df = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'text'])
-        # setup spacy matcher
-        matcher = Matcher(self.nlp.vocab)
         self.match_dict = dict((e, []) for e in self.topics)
         for topic,rules in self.topics.items():
             for rule in rules:
                 for key,regex in rule.items():
                     for match in re.finditer(regex, doc.text):
-                        out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'text':doc.text}
+                        print(match[0], regex, doc.text)
+                        if match:
+                            out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match[0], 'text':doc.text}
                         out_df = out_df.append(out_dict, ignore_index=True)
         return out_df
 
@@ -168,21 +168,23 @@ class regex_matcher(object):
             for rule in rules:
                 for key,regex in rule.items():
                     for match in re.finditer(regex, doc.text):
+                        print(match[0], regex, doc.text)
                         charstart, charend = match.span()
                         span = doc.char_span(charstart, charend)
                         if span is not None:
-                            match = span.text
-                            matcher.add(match, None, [{"TEXT": match}])
+                            match_txt = span.text
+                            matcher.add(match_txt, None, [{"TEXT": match_txt}])
                             matches = matcher(doc)
                             if matches:
                                 context_span = self.get_match_context(matches, doc)
                             else:
                                 #print('ERROR WITH SPACY TOKEN MATCHING!  ' + str(span.text))
                                 context_span = match
-                            out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match, 'context_span': context_span, 'text':doc.text}
+                            out_dict = {'comment_idx':idx, 'topic': topic, 'conforming_text': key, 'matched_text': match_txt, 'context_span': context_span, 'text':doc.text}
                         else:
                             out_dict = pd.DataFrame(columns = ['comment_idx', 'topic', 'conforming_text', 'matched_text', 'context_span', 'text'])
                         # for eatch match append the output, unless there was an error else append ''
+                        print(out_dict)
                         out_df = out_df.append(out_dict, ignore_index=True)
         return out_df
 

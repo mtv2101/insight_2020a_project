@@ -16,7 +16,7 @@ import load_text
 def regex_find_topics(df, nlp, num_matches):
     start_time = timeit.default_timer()
 
-    match = regex_matcher()
+    reg_match = regex_matcher()
     match_df = pd.DataFrame()
 
     if num_matches != -1:
@@ -24,42 +24,36 @@ def regex_find_topics(df, nlp, num_matches):
         for t in match_idx:
             text = df['text'].iloc[t]
             doc = nlp(text)
-            out_df = match.match_topics(t, doc)
+            out_df = reg_match.match_topics_with_spans(t, doc)
             match_df = match_df.append(out_df)
 
     else:
         for t in range(len(df)):
             text = df['text'].iloc[t]
             doc = nlp(text)
-            out_df = match.match_topics(t, doc)
+            out_df = reg_match.match_topics_with_spans(t, doc)
             match_df = match_df.append(out_df)
 
     com_ids = match_df.comment_idx.unique()
     labels = []
     idx = []
+    text = []
     for id in com_ids:
         # match_df has several columns, here lets pull just one
         idx.append(int(id))
         com_df = match_df[match_df['comment_idx'] == id]
         com_labs = com_df.topic.unique()
         labels.append(com_labs)
+        text.append(df.text.iloc[id])
 
     multilabel_df = pd.DataFrame()
     multilabel_df['comment_idx'] = idx
     multilabel_df['labels'] = labels
+    multilabel_df['text'] = text
 
     onehot = pd.get_dummies(multilabel_df.labels.apply(pd.Series).stack()).sum(level=0)
 
-    #sub_df = df[df.index.isin(com_ids)]
-    #sub_df = sub_df[['text']]
-    sub_df = df.loc[com_ids]
-
-    #print(multilabel_df.shape, sub_df.shape, onehot.shape)
-    #print(multilabel_df.keys(), sub_df.keys(), onehot.keys())
-    out_df = pd.concat([multilabel_df, sub_df.reset_index(), onehot], axis=1, ignore_index=False)
-    #print(out_df.shape)
-
-    out_df.reset_index(inplace=True)
+    out_df = pd.concat([multilabel_df, onehot], axis=1)
 
     process_time = timeit.default_timer() - start_time
     print(str(len(df)) + ' submissions, query took ' + str(process_time) + ' seconds')
@@ -118,8 +112,8 @@ def main(run_regex=True, do_hand_scoring=False, num_matches=-1):
     #embeds = embeddings()
     #embeds.load_unlabeled_data()
     #df = embeds.ul_df # get unlabeled dataframe
-    df = load_text.load_unlabeled_data()
-    #df = load_text.load_context_free_data()
+    #df = load_text.load_unlabeled_data()
+    df = load_text.load_context_free_data()
 
     if run_regex:
         df = regex_find_topics(df, nlp, num_matches)
