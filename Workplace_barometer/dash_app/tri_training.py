@@ -102,7 +102,7 @@ def setup_pipes():
                                                             n_jobs=-1))])
 
     SVC = Pipeline([('SVC', OneVsRestClassifier(LinearSVC(multi_class='ovr',
-                                                   C=0.0001,
+                                                   C=0.001,
                                                    class_weight='balanced'),
                                                 n_jobs=-1))])
 
@@ -135,8 +135,8 @@ def setup_pipes():
                                                                               algorithm='ball_tree'),
                                                            n_jobs=-1))])
 
-    #models = {'SVC':SVC, 'RForest':RForest, 'MLP':MLP}
-    models = {'SVC': SVC, 'LogReg': LogReg, 'LogReg2': LogReg}
+    models = {'LogReg':LogReg, 'RForest':RForest, 'MLP':MLP}
+
     return models
 
 
@@ -173,12 +173,6 @@ def generic_fit(model, X_train, y_train, X_test, y_test, X_ul):
     return predictions, acc, prec, prec_all, rec
 
 
-def add_label(ul_df, idx, hot_lab):
-    classes = get_classes()
-    labels = [classes[idx] for idx,i in enumerate(hot_lab) if i==1]
-    ul_df['labels'].iloc[idx] = labels
-    return ul_df
-
 
 def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled_idx, training_method='classic'):
 
@@ -189,6 +183,8 @@ def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled
     assert (X1.shape[0] == y1.shape[0])
     assert (X2.shape[0] == y2.shape[0])
 
+    classes = get_classes()
+
     p1, p2, p3 = preds
     print('unlabeled data shape: ' + str(X_ul.shape))
     ensemble = np.stack([p1, p2, p3], axis=0).astype('int16')
@@ -197,6 +193,8 @@ def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled
     assert len(unlabelled_idx) == ensemble.shape[1]
 
     # unlabelled index gives the indices within ul_df where label==np.nan
+    delete_list = []
+    all_labels = ul_df['labels'].values
     for i,idx in enumerate(unlabelled_idx):
         if training_method == 'disagreement':
             # if model 0 is the odd-one-out add labels to its training set
@@ -206,9 +204,9 @@ def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled
                 #print(ensemble[0, i, :], ensemble[1, i, :])
                 X0 = np.vstack([X0, X_ul[i, :]])
                 y0 = np.vstack([y0, ensemble[1, i, :].squeeze()]) # append a correct label
-                X_ul = np.delete(X_ul, i, axis=0)
-                del unlabelled_idx[i]
-                ul_df = add_label(ul_df, idx, ensemble[1, i, :].squeeze())
+                labels = [classes[idx] for idx, i in enumerate(ensemble[1, i, :].squeeze()) if i == 1]
+                all_labels[idx] = labels
+                delete_list.append(i)
 
             # if model 1 is the odd-one-out add labels to its training set
             elif (ensemble[0, i, :] != ensemble[1, i, :]).any() and (
@@ -216,9 +214,9 @@ def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled
                     ensemble[0, i, :] == ensemble[2, i, :]).all():
                 X1 = np.vstack([X1, X_ul[i, :]])
                 y1 = np.vstack([y1, ensemble[0, i, :].squeeze()])
-                X_ul = np.delete(X_ul, i, axis=0)
-                del unlabelled_idx[i]
-                ul_df = add_label(ul_df, idx, ensemble[0, i, :].squeeze())
+                labels = [classes[idx] for idx, i in enumerate(ensemble[0, i, :].squeeze()) if i == 1]
+                all_labels[idx] = labels
+                delete_list.append(i)
 
             # if model 2 is the odd-one-out add labels to its training set
             elif (ensemble[2, i, :] != ensemble[1, i, :]).any() and (
@@ -226,9 +224,9 @@ def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled
                     ensemble[1, i, :] == ensemble[0, i, :]).all():
                 X2 = np.vstack([X2, X_ul[i, :]])
                 y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
-                X_ul = np.delete(X_ul, i, axis=0)
-                del unlabelled_idx[i]
-                ul_df = add_label(ul_df, idx, ensemble[1, i, :].squeeze())
+                labels = [classes[idx] for idx, i in enumerate(ensemble[1, i, :].squeeze()) if i == 1]
+                all_labels[idx] = labels
+                delete_list.append(i)
 
         elif training_method == 'classic':
             # if all models agree, (and predictions are not zero?), add label to all training sets
@@ -241,19 +239,27 @@ def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled
                 y0 = np.vstack([y0, ensemble[1, i, :].squeeze()])
                 y1 = np.vstack([y1, ensemble[1, i, :].squeeze()])
                 y2 = np.vstack([y2, ensemble[1, i, :].squeeze()])
-                X_ul = np.delete(X_ul, i, axis=0)
-                del unlabelled_idx[i]
-                ul_df = add_label(ul_df, idx, ensemble[1, i, :].squeeze())
+                labels = [classes[idx] for idx, i in enumerate(ensemble[1, i, :].squeeze()) if i == 1]
+                all_labels[idx] = labels
+                delete_list.append(i)
+
+    X_ul = np.delete(X_ul, delete_list, axis=0)
+    print(len(unlabelled_idx))
+    unlabelled_idx = [idx for i,idx in enumerate(unlabelled_idx) if i not in delete_list]
+    print(len(unlabelled_idx))
+    all_labels_df = pd.DataFrame({'labels':all_labels})
+    ul_df.update(all_labels_df)
+    print(ul_df.head(20))
 
     training_dat = [X0, X1, X2]
     training_labels = [y0, y1, y2]
 
-    return training_dat, training_labels, X_ul, unlabelled_idx, ul_df
+    return training_dat, training_labels, X_ul, ul_df, unlabelled_idx
 
 
 def tri_fit(X, y, ul_df, models, save_output=True, skf=False):
 
-    num_iters = 20
+    num_iters = 3
 
     print('X size = ' + str(X.shape))
     print('y size = ' + str(y.shape))

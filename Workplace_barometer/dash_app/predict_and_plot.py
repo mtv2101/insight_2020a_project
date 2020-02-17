@@ -10,13 +10,15 @@ from sklearn import preprocessing
 from sklearn.decomposition import PCA
 
 
-def main():
+def main(model=None):
 
-    models = load_models()
+    if not model:
+        models = load_models()
+    else:
+        models = model
+
     embeddings = load_embeddings()
 
-    #predictions = [predict_new_labels(model, embeddings) for i,(m,model) in enumerate(models.items())]
-    #predictions = tri_predict(models, embeddings)
     predictions = single_model_predict(models, embeddings)
     gt, gt_indices = load_ground_truth()
     preds_matching_gt = predictions[gt_indices]
@@ -70,7 +72,7 @@ def get_classes():
 def load_embeddings():
 
     #path = '/Workplace_barometer/output/unlabelled_bert_embeddings.npy'
-    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/new_data_bert_sum_embeddings.npy'
+    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/bert_mean_embeddings20200215-215413.npy'
     embeddings = np.load(path)
     embeddings = pca_reduce(embeddings)
 
