@@ -71,8 +71,12 @@ def get_classes():
 
 def load_embeddings():
 
-    #path = '/Workplace_barometer/output/unlabelled_bert_embeddings.npy'
-    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/bert_mean_embeddings20200215-215413.npy'
+    # embeddings for main 200k dataset
+    path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/bert_mean_embeddings20200216-044222.npy'
+
+    # embeddings for small ~3k new dataset
+    #path = '/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/bert_mean_embeddings20200215-215413.npy'
+
     embeddings = np.load(path)
     embeddings = pca_reduce(embeddings)
 
@@ -88,7 +92,12 @@ def pca_reduce(X):
 
 def load_ground_truth():
 
-    gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200215-165137.pkl'
+    # regex for main 200k dataset
+    gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200216-033348.pkl'
+
+    # regex for small ~3k new dataset
+    #gt_path = '~/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200215-165137.pkl'
+    
     gt = pd.read_pickle(gt_path)
 
     # gt df contains more than one-hot labels, get just there

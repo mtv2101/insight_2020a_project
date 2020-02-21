@@ -106,15 +106,16 @@ def setup_pipes():
                                                    class_weight='balanced'),
                                                 n_jobs=-1))])
 
-    AdaBoost = Pipeline([('AdaBoost', OneVsRestClassifier(AdaBoostClassifier(n_estimators=50,
+    AdaBoost = Pipeline([('AdaBoost', OneVsRestClassifier(AdaBoostClassifier(n_estimators=100,
                                                                         random_state=42),
                                                             n_jobs=-1))])
 
     RForest = Pipeline([('RForest', OneVsRestClassifier(RandomForestClassifier(n_estimators=100,
                                                                            random_state=42,
-                                                                           max_depth=5,
-                                                                           min_samples_leaf=3,
-                                                                           class_weight='balanced_subsample'
+                                                                           max_depth=8,
+                                                                           min_samples_leaf=5,
+                                                                           class_weight=None,
+                                                                           warm_start=True
                                                                            ),
                                                             n_jobs=-1))])
 
@@ -122,17 +123,19 @@ def setup_pipes():
                                                                 tol=1e-4,
                                                                 alpha=0.0001,
                                                                 max_iter=1000,
-                                                                activation='logistic'),
+                                                                activation='logistic',
+                                                                warm_start=True),
                                                             n_jobs=-1))])
 
     GP = Pipeline([('GP', OneVsRestClassifier(GaussianProcessClassifier(max_iter_predict = 1000,
-                                                                        multi_class = 'one_vs_rest'),
+                                                                        multi_class = 'one_vs_rest',
+                                                                        warm_start=True),
                                                      n_jobs=-1))])
 
     KNN = Pipeline([('KNN', OneVsRestClassifier(KNeighborsClassifier(n_neighbors=5,
-                                                                              leaf_size=100,
-                                                                              weights='uniform',
-                                                                              algorithm='ball_tree'),
+                                                                      leaf_size=50,
+                                                                      weights='uniform',
+                                                                      algorithm='auto'),
                                                            n_jobs=-1))])
 
     models = {'LogReg':LogReg, 'RForest':RForest, 'MLP':MLP}
@@ -259,7 +262,7 @@ def find_consensus(preds, training_dat, training_labels, X_ul, ul_df, unlabelled
 
 def tri_fit(X, y, ul_df, models, save_output=True, skf=False):
 
-    num_iters = 3
+    num_iters = 15
 
     print('X size = ' + str(X.shape))
     print('y size = ' + str(y.shape))
@@ -273,6 +276,9 @@ def tri_fit(X, y, ul_df, models, save_output=True, skf=False):
 
     # y contains nans for unlabelled entries, remove these before training
     y_l = y[labelled_idx,:]
+
+    X_l = X_l[:10000]
+    y_l = y_l[:10000]
 
     if skf:
         X_train, y_train, X_test, y_test = iterative_train_test_split(X_l, y_l, test_size=0.2)

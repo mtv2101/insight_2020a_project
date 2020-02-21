@@ -9,16 +9,18 @@ import pandas as pd
 import flask
 import numpy as np
 
+from predict_and_plot import get_class_frequency_df
 
-from predict_and_plot import get_class_frequency
+####################################################################
+
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
-df = pd.read_pickle('/Workplace_barometer/output/regex_scores_20200206-221204.pkl')
+df = pd.read_pickle('/home/matt_valley/PycharmProjects/insight_2020a_project/Workplace_barometer/output/regex_scores_20200216-033348.pkl')
 df = df.dropna(axis=0)
-classes, class_counts, uncat_count = get_class_frequency(df)
+classes, class_counts, uncat_count = get_class_frequency_df(df)
 class_counts = [count/float(len(df)) for count in class_counts]
 dropdown_dict = [{'label':c, 'value':c} for c in classes]# list of single-key dicts, one for each drowpdown item
 
