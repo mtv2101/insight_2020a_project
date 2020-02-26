@@ -110,12 +110,13 @@ def setup_pipes():
                                                                         random_state=42),
                                                             n_jobs=-1))])
 
-    RForest = Pipeline([('RForest', OneVsRestClassifier(RandomForestClassifier(n_estimators=100,
+    RForest = Pipeline([('RForest', OneVsRestClassifier(RandomForestClassifier(n_estimators=1000,
                                                                            random_state=42,
                                                                            max_depth=8,
                                                                            min_samples_leaf=5,
                                                                            class_weight=None,
-                                                                           warm_start=True
+                                                                           warm_start=True,
+                                                                           max_features=4
                                                                            ),
                                                             n_jobs=-1))])
 
